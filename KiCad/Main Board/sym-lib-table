@@ -1,4 +1,5 @@
 (sym_lib_table
-  (lib (name Electronic-Target-rescue)(type Legacy)(uri "${KIPRJMOD}/Electronic Target-rescue.lib")(options "")(descr ""))
-  (lib (name Electronic-Target-V3-rescue)(type Legacy)(uri "${KIPRJMOD}/Electronic Target V3-rescue.lib")(options "")(descr ""))
+  (lib (name "Electronic-Target-rescue")(type "Legacy")(uri "${KIPRJMOD}/Electronic Target-rescue.lib")(options "")(descr ""))
+  (lib (name "Electronic-Target-V3-rescue")(type "Legacy")(uri "${KIPRJMOD}/Electronic Target V3-rescue.lib")(options "")(descr "")(disabled))
+  (lib (name "wroom")(type "Legacy")(uri "${KIPRJMOD}/wroom.lib")(options "")(descr ""))
 )
