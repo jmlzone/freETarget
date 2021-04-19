@@ -41,7 +41,7 @@ logic [6:0] cur_addr;
   end
 endtask // write
 
-task read(input int len, input no_ack=0);
+task read(input int len);
 int idx;
 logic [6:0] cur_addr;
 logic [7:0] rdata;
@@ -51,12 +51,12 @@ begin
   send_byte({dev_addr,1'b1}, 1'b1, 1'b0); // start, send i2c addr, read
   idx = 0;
   while(idx < (len-1)) begin
-    read_byte(1'b0, ~no_ack, rdata); // read bytes
+    read_byte(1'b0, 1, rdata); // read bytes
     data[idx] = rdata;
     cur_addr = cur_addr+1;
     idx=idx+1;
   end
-  read_byte(1'b1, ~no_ack, rdata); // read last byte
+  read_byte(1'b1, 0, rdata); // read last byte nack last byte
     data[idx] = rdata;
 end
 endtask // read
@@ -83,15 +83,15 @@ begin
   scl = 1'b1;
   #CLKHI ;
   scl = 1'b0;
-  #DS ;
+  //#DS ;
   drv_sda = 1'b0;
   #DS ;   
   if (send_stop) begin
     scl = 1'b1;
     #SP ;
     drv_sda = 1'b1;
-    #DS ;
   end
+  #DS ;
 end
 endtask // read_byte
 

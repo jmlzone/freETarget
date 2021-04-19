@@ -33,6 +33,8 @@ always_ff @(posedge clk or posedge ares)
       decLPF <= 0;
       lpfCount <= 0;
       accLPF   <= 0;
+      // final output
+      q <= 0;
     end
   else
     begin

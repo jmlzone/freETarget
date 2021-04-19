@@ -7,7 +7,6 @@ their state machine and store the data or to output the updated data.
 
 ----------------------------------------------------------------------*/
 
-
 module jml_i2c  #(
   parameter MYI2C_ADDR = 7'h10
  ) (
@@ -15,7 +14,7 @@ module jml_i2c  #(
 // interface to pins
   input 	     scl, //i2c clock
   input 	     sda,
-  output 	     sda_drv_lo,
+  output logic	     sda_drv_lo,
 //serial bridge signals
   output logic [5:0] addr,
   output logic 	     read,
@@ -29,8 +28,6 @@ module jml_i2c  #(
 logic [0:7] read_data_rev;
 
 //common
-logic shift_clk;
-logic sample_clk;
 
 logic [7:0] write_data_nxt;
 logic byte_done, byte_done_nxt;
@@ -55,12 +52,10 @@ logic i2c_resetS_n;
 logic i2cS, i2cP;
 
 logic [2:0] i2c_state, i2c_nxt;
-logic i2c_send_nxt;
 logic my_addr;
 logic got_ack, got_ack_nxt;
 logic i2c_read;
 assign i2c_resetS_n = reset_n && ~(i2c_state==I2C_ADDR);
-logic sda_oe;
 logic first_write_done, first_write_done_nxt;
 
 /*----------------------------------------------------------------------
@@ -187,19 +182,18 @@ always @*
             || (i2c_state == I2C_LOGIC_ADDR)
             || (i2c_state == I2C_WRITE) )
          && bit_cnt7)
-      i2c_send_nxt = 1'b1; // send ack
+      sda_drv_lo = 1'b1; // send ack
     else
       if(((i2c_nxt == I2C_READ) || ((i2c_nxt == I2C_READ_ACK) && got_ack)) && (bit_cnt != 7))  // need to allow for ack in
-        i2c_send_nxt = ~read_data_rev[bit_cnt_nxt];
+        sda_drv_lo = ~read_data_rev[bit_cnt_nxt];
       else 
-        i2c_send_nxt = 1'b0;
+        sda_drv_lo = 1'b0;
 
     if((i2c_state == I2C_READ) && (bit_cnt7))
       got_ack_nxt = ~sda;
     else 
       got_ack_nxt = 1'b0;
 
-     sda_oe = i2c_send_nxt;
   end
 /*----------------------------------------------------------------------
  common shift clock domain clock generation, bit counter, shift logicister
@@ -209,16 +203,8 @@ always @*
   read and write generation
 
 ----------------------------------------------------------------------*/
-always @*
-    begin
-      shift_clk = ~scl;
-      sample_clk = ~scl;
-    end
-// bit_cnt is on shift_clk since it drives miso,
-// the rest is on capture clock since they drive
-// to the internal logics
-
-always @(posedge shift_clk or negedge reset_n)
+// bit_cnt is on shift_clk (scl)
+always @(negedge scl or negedge reset_n)
   if(!reset_n)
     begin
       bit_cnt     <=  3'b0;
@@ -229,7 +215,7 @@ always @(posedge shift_clk or negedge reset_n)
     end
 
 // sample (capture) clock
-always @(posedge sample_clk or negedge reset_n)
+always @(negedge scl or negedge reset_n)
   if(!reset_n)
     begin
       addr        <=  6'b0;
@@ -323,12 +309,12 @@ always @*
   read data latch allows for  1/2 cycle of data time.
   I know I hate latches but is there a better soultion?
 
-  latch is open when bit cnt is zero and shift_clk is low
-----------------------------------------------------------------------*/
+  latch is open when bit cnt is zero 
+ ----------------------------------------------------------------------*/
 logic read_latch_open;
 always @*
   begin
-    if(/*!shift_clk && */(bit_cnt==0))
+    if(bit_cnt==0)
       read_latch_open = 1'b1;
     else
       read_latch_open = 1'b0;
@@ -337,8 +323,6 @@ always @(read_latch_open or read_data)
   if(read_latch_open)
     read_data_rev <=  read_data;
 
-
-assign sda_drv_lo = sda_oe;
 
 endmodule // jml_i2c
 
