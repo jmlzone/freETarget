@@ -50,10 +50,10 @@ always_ff @(posedge clk or posedge ares)
 	end
       else
 	begin
-	  if(sdm)
+	  if(sdm & ~(&acc))
 	    acc  <= acc + 1;
 	  else
-	    acc  <= acc -1;
+	    acc  <= acc;// -1;
     
 	  decVld <= 1'b0;
 	end // else: !if(last)
@@ -70,8 +70,11 @@ always_ff @(posedge clk or posedge ares)
 	  else
 	    begin
 	      accLPF <= accLPF + decRaw;
-	      wr <= 1'b0;
 	    end
 	end // if (decVld)
+      else
+	begin
+	  wr <= 1'b0;
+	end // else: !if(decVld)
     end // else: !if(ares)
 endmodule // sd_adc

@@ -16,8 +16,8 @@ initial
 
 always @(negedge clk)
   begin
-    inc = (maxVal - aint) / 2048;
-    dec = aint / 2048;
+    inc = (maxVal - aint) / 64;
+    dec = aint / 64;
     // integrator
     if(pcm)
       aint <= aint + inc;

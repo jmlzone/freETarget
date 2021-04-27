@@ -11,12 +11,16 @@
 #ifndef _FREETARGET_H
 #define _FREETARGET_H
 
+#ifdef ESP32
+#define SOFTWARE_VERSION "\"4.00 preliminar\""
+#else
 #define SOFTWARE_VERSION "\"3.00.1 April 4, 2021\""
 #define REV_210    21
 #define REV_220    22
 #define REV_290    29
 #define REV_300   300
-
+#define REV_400   400
+#endif
 #define INIT_DONE       0xabcd        // Initialization complete signature
 
 /*

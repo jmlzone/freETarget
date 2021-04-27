@@ -8,7 +8,11 @@
 
 #include "freETarget.h"
 #include "analog_io.h"
-#include "gpio.h"
+#ifdef ESP32
+  #include "gpioESP32.h"
+#else
+  #include "gpio.h"
+#endif
 #include "Wire.h"
 
 /*----------------------------------------------------------------
@@ -85,8 +89,11 @@ unsigned int read_reference(void)
  *  The analog input is a number 0-1024 
  *--------------------------------------------------------------*/
 //                                 0      1  2  3     4     5  6      7    8  9   A   B   C   D   E   F
-static unsigned int version[] = {REV_210, 1, 2, 3, REV_300, 5, 6, REV_220, 8, 9, 10, 11, 12, 13, 14, 15};
-  
+#ifdef ESP32
+  static unsigned int version[] = {REV_400, 1, 2, 3,  4, 5, 6,        7, 8, 9, 10, 11, 12, 13, 14, 15};
+#else
+  static unsigned int version[] = {REV_210, 1, 2, 3, REV_300, 5, 6, REV_220, 8, 9, 10, 11, 12, 13, 14, 15};
+#endif
 unsigned int revision(void)
 {
   return version[analogRead(ANALOG_VERSION) * 16 / 1024];
@@ -147,9 +154,9 @@ void cal_analog(void)
     {
      steps = 0;
     }
-  digitalWrite(LED_S, (steps & 1) == 0);
-  digitalWrite(LED_X, (steps & 2) == 0);
-  digitalWrite(LED_Y, (steps & 4) == 0);
+  set_LED(LED_S, (steps & 1) == 0);
+  set_LED(LED_X, (steps & 2) == 0);
+  set_LED(LED_Y, (steps & 4) == 0);
 
   
 /*

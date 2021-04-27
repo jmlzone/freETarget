@@ -10,7 +10,11 @@
 #include "freETarget.h"
 #include "mechanical.h"
 #include "analog_io.h"
-#include "gpio.h"
+#ifdef ESP32
+  #include gpioESP32.h
+#else
+  #include "gpio.h"
+#endif
 #include "diag_tools.h"
 
 const char* which_one[4] = {"North: ", "East: ", "South: ", "West: "};
@@ -92,8 +96,12 @@ void self_test(uint16_t test)
       Serial.print("\r\nTime:");                      Serial.print(micros());
       Serial.print("\r\nBD Rev:");                    Serial.print(revision());       
       Serial.print("\r\nDIP: 0x");                    Serial.print(read_DIP(), HEX); 
+#ifdef ESP32
+      stop_enable_counters();
+#else
       digitalWrite(STOP_N, 0);
       digitalWrite(STOP_N, 1);                        // Reset the fun flip flop
+#endif
       Serial.print("\r\nRUN FlipFlop: 0x");           Serial.print(is_running(), HEX);   
       Serial.print("\r\nTemperature: ");              Serial.print(temperature_C());  Serial.print("'C ");
       Serial.print(speed_of_sound(temperature_C()));  Serial.print("mm/us");
@@ -101,9 +109,9 @@ void self_test(uint16_t test)
       Serial.print("\r\n");
       for (tick=0; tick != 8; tick++)
       {
-        digitalWrite(LED_S, (~tick) & 1);
-        digitalWrite(LED_X, (~tick) & 2);
-        digitalWrite(LED_Y, (~tick) & 4);
+        set_LED(LED_S, (~tick) & 1);
+        set_LED(LED_X, (~tick) & 2);
+        set_LED(LED_Y, (~tick) & 4);
         delay(250);
       }
       json_test = T_HELP;               // and stop the test
@@ -115,9 +123,9 @@ void self_test(uint16_t test)
       stop_counters();
       arm_counters();
 
-      digitalWrite(LED_S, 0);
-      digitalWrite(LED_X, 1);
-      digitalWrite(LED_Y, 1);
+      set_LED(LED_S, 0);
+      set_LED(LED_X, 1);
+      set_LED(LED_Y, 1);
       
       if ( json_test == T_CLOCK )
       {
@@ -125,9 +133,13 @@ void self_test(uint16_t test)
         {
           random_delay = random(1, 6000);   // Pick a random delay time in us
           Serial.print("\r\nRandom clock test: "); Serial.print(random_delay); Serial.print("us. All outputs must be the same. ");
+#ifdef ESP32
+	  start_clock();
+#else
           digitalWrite(CLOCK_START, 0);
           digitalWrite(CLOCK_START, 1);     // Trigger the clocks from the D input of the FF
           digitalWrite(CLOCK_START, 0);
+#endif
           delayMicroseconds(random_delay);  // Delay a random time
         }
         else
@@ -172,9 +184,9 @@ void self_test(uint16_t test)
       }
       send_timer(sensor_status);
       
-      digitalWrite(LED_S, 1);
-      digitalWrite(LED_X, 1);
-      digitalWrite(LED_Y, 0);
+      set_LED(LED_S, 1);
+      set_LED(LED_X, 1);
+      set_LED(LED_Y, 0);
       delay(1000);
       break;
 
@@ -310,9 +322,9 @@ void self_test(uint16_t test)
    
   for (i=0; i !=4; i++)
   {
-    digitalWrite(LED_S, ~(1 << i) & 1);
-    digitalWrite(LED_X, ~(1 << i) & 2);
-    digitalWrite(LED_Y, ~(1 << i) & 4);
+    set_LED(LED_S, ~(1 << i) & 1);
+    set_LED(LED_X, ~(1 << i) & 2);
+    set_LED(LED_Y, ~(1 << i) & 4);
     delay(250);
   }
 
@@ -357,17 +369,21 @@ void self_test(uint16_t test)
 /*
  *  Test 1, Trigger the circuit and make sure all of the running states are triggered
  */
-    digitalWrite(LED_S, 0);           // Show first test starting
-    digitalWrite(LED_X, 1);
-    digitalWrite(LED_Y, 0);
+    set_LED(LED_S, 0);           // Show first test starting
+    set_LED(LED_X, 1);
+    set_LED(LED_Y, 0);
 
     random_delay = random(1, 6000);   // Pick a random delay time in us
     stop_counters();                  // Get the circuit ready
     arm_counters();
 
+#ifdef ESP32
+    start_clock();
+#else
     digitalWrite(CLOCK_START, 0);
     digitalWrite(CLOCK_START, 1);     // Trigger the clocks from the D input of the FF
     digitalWrite(CLOCK_START, 0);
+#endif
     delayMicroseconds(random_delay);  // Delay a random time
   
     sensor_status = is_running();     // Remember all of the running timers
@@ -382,9 +398,9 @@ void self_test(uint16_t test)
  * Test 2. Read back the counters and make sure they match
  */
     delay(50);
-    digitalWrite(LED_S, 0);           // Show second test starting
-    digitalWrite(LED_X, 0);
-    digitalWrite(LED_Y, 1);
+    set_LED(LED_S, 0);           // Show second test starting
+    set_LED(LED_X, 0);
+    set_LED(LED_Y, 1);
 
     random_delay *= 8;                // Convert to clock ticks
     for (j=N; j != (W+1); j++ )       // Check all of the counters
@@ -538,7 +554,7 @@ void set_trip_point(int t)
    }
    ch = ~ch;
    Serial.print("\r\nV_Ref: "); Serial.print(TO_VOLTS(analogRead(V_REFERENCE)));
-   digitalWrite(LED_S, ch & 4); digitalWrite(LED_X, ch & 2); digitalWrite(LED_Y, ch & 1);
+   set_LED(LED_S, ch & 4); set_LED(LED_X, ch & 2); set_LED(LED_Y, ch & 1);
  }
 
  /*
@@ -579,9 +595,9 @@ void show_analog(int v)
   char o_scope[FULL_SCALE];
   unsigned long now;
   
-  digitalWrite(LED_S, ~(1 << cycle) & 1);
-  digitalWrite(LED_X, ~(1 << cycle) & 2);
-  digitalWrite(LED_Y, ~(1 << cycle) & 4);
+  set_LED(LED_S, ~(1 << cycle) & 1);
+  set_LED(LED_X, ~(1 << cycle) & 2);
+  set_LED(LED_Y, ~(1 << cycle) & 4);
   cycle = (cycle+1) % 4;
 
  /*

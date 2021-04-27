@@ -41,8 +41,36 @@ initial
     i2c.reg_addr = 0;
     i2c.read(32);
     i2c.display_read(32);
+    i2c.reg_addr = 1; //control
+    i2c.data[0] = 3;  // clear[0] and stop[1]
+    i2c.write(1);
+    i2c.data[0] = 0;  // clear[0] and stop[1]
+    i2c.write(1);
+    #1us;
+    mic_north = 1;
+    #1us;
+    mic_north = 0;
+    mic_south = 1;
+    #1us;
+    mic_south = 0;
+    mic_east  = 1;
+    #1us;
+    mic_east  = 0;
+    mic_west  = 1;
+    #1us;
+    mic_west  = 0;
+    #100us;
+    i2c.reg_addr = 1; //control
+    i2c.data[0] = 2;  //stop[1]
+    i2c.write(1);
+    $display("Read target counter");
+    i2c.reg_addr = 2;
+    i2c.read(8);
+    i2c.display_read(8);
+    
     #1ms; // things should be stable ADC's midscale
     $display("Read all after 1 ms");
+    i2c.reg_addr = 0;
     i2c.read(32);
     i2c.display_read(32);
     fork

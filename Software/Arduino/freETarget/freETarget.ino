@@ -1,4 +1,4 @@
-        /*----------------------------------------------------------------
+/*----------------------------------------------------------------
  * 
  * freETarget
  * 
@@ -6,7 +6,11 @@
  * 
  *-------------------------------------------------------------*/
 #include "freETarget.h"
-#include "gpio.h"
+#ifdef ESP32
+  #include gpioESP32.h
+#else
+  #include "gpio.h"
+#endif
 #include "compute_hit.h"
 #include "analog_io.h"
 #include "json.h"
@@ -59,7 +63,7 @@ void setup()
   init_analog_io();
 
 /*
- * Run the powe on self test
+ * Run the power on self test
  */
   POST_1();                           // Cycle the LEDs
   if ( POST_2() == false )            // If the timers fail, 

@@ -16,16 +16,16 @@ assign clr = ares | clear;
    if(clr)
      run <= 1'b0;
    else 
-     if (~start) // active low
+     if (start) // active low
        run <= 1'b1;
-     else if(~stop) // active low
+     else if(stop) // active low
        run <= 1'b0;
        
 always @(posedge clk or posedge clr)
   if(clr)
     count <= 16'b0;
   else
-    if(quiet & run & count < 16'hffff)
+    if(~quiet & run & count < 16'hffff)
       count <= count +1;
 endmodule // target_counter
 

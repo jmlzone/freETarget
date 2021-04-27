@@ -14,6 +14,11 @@ module etarget(
   input        sd4p,
   input        sd5p,
   input        mode,
+  input DIPA,
+  input DIPB,
+  input DIPC,
+  input DIPD,
+        
   output logic pcm0,
   output logic pcm1,
   output logic pcm2,
@@ -35,7 +40,7 @@ SB_IO #(
     .D_OUT_0(1'b0),
     .D_IN_0(sda)
 );
-
+/*
 //comparitor pins
 SB_IO #(
     .PIN_TYPE(6'b000000),
@@ -133,7 +138,7 @@ SB_IO #(
   .D_IN_0 (comp5),
   .D_IN_1 ()
 );
-
+*/
 /*----------------------------------------------------------------------
   register address map
  0 RO 0x10 -- we only want to shoot 10's
@@ -146,7 +151,7 @@ SB_IO #(
  7 RO east high
  8 RO west low
  9 RO west hi
- a run status west,east,south,north
+ a run status west,south, east,north
 ----------------------------------------------------------------------*/
 
 logic [7:0] version;
@@ -203,7 +208,8 @@ always @*
       6'h7 : read_data = count_east[15:8];
       6'h8 : read_data = count_west[7:0];
       6'h9 : read_data = count_west[15:8];
-      6'ha : read_data = {4'h0, run_west,run_east,run_south,run_north};
+      6'ha : read_data = {4'h0, run_west,run_south,run_east,run_north};
+      6'hb : read_data = {4'h0, DIPA,DIPB,DIPC,DIPD};
       6'h10: read_data = conv0;
       6'h11: read_data = conv1;
       6'h12: read_data = conv2;
@@ -269,48 +275,54 @@ assign quiet = control[2];
 /*----------------------------------------------------------------------
  instances of the adc's for now  no signal processing
 ----------------------------------------------------------------------*/
-
- sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc0 (
+ sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc0 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp0),
+  .comp(sd0p),
+//  .comp(comp0),
   .sdm(pcm0),
   .q(conv0),
   .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc1 (
+/*
+sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc1 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp1),
+  .comp(sd1p),
+//  .comp(comp1),
   .sdm(pcm1),
   .q(conv1),
   .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc2 (
+sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc2 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp2),
+  .comp(sd2p),
+//  .comp(comp2),
   .sdm(pcm2),
   .q(conv2),
   .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc3 (
+sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc3 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp3),
+  .comp(sd3p),
+//  .comp(comp3),
   .sdm(pcm3),
   .q(conv3),
   .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc4 (
+sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc4 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp4),
+  .comp(sd4p),
+//  .comp(comp4),
   .sdm(pcm4),
   .q(conv4),
   .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(10)) adc5 (
+sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc5 (
   .clk(clk64M),
   .ares(ares),
-  .comp(comp5),
+  .comp(sd5p),
+//  .comp(comp5),
   .sdm(pcm5),
   .q(conv5),
   .wr() );
-
+*/
 endmodule // etarget
