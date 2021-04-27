@@ -11,10 +11,11 @@
  
 /*----------------------------------------------------------------
  * 
- * void init_nonvol()
+ * function: init_nonvol
  * 
- * Initialize the NONVOL back to factory settings
+ * brief: Initialize the NONVOL back to factory settings
  * 
+ * return: None
  *---------------------------------------------------------------
  *
  * The variable NONVOL_INIT is corrupted and the NONVOL read back
@@ -30,7 +31,7 @@ void init_nonvol(int v)
   Serial.print("\r\nReset to factory defaults\r\n");
   read_nonvol();                          // Force in new values
   show_echo(0);                           // Display these settings
-  set_trip_point(0);
+  set_trip_point(false);
 /*
  * All done, return
  */
@@ -39,9 +40,11 @@ void init_nonvol(int v)
 
 /*----------------------------------------------------------------
  * 
- * void read_nonvol()
+ * funciton: read_nonvol
  * 
- * Read nonvol and set up variables
+ * brief: Read nonvol and set up variables
+ * 
+ * return: Nonvol values copied to RAM
  * 
  *---------------------------------------------------------------
  *
@@ -58,8 +61,7 @@ void read_nonvol(void)
  * Read the nonvol marker and if uninitialized then set up values
  */
   EEPROM.get(NONVOL_INIT, nonvol_init);
-  if ( (nonvol_init != INIT_DONE)                       // EEPROM never programmed
-      || ((read_DIP() & FACTORY) != 0) )                       // Reset back to factory defaults
+  if ( nonvol_init != INIT_DONE)                       // EEPROM never programmed
   {
     Serial.print("\r\nInitializing NON-VOL");
     gen_position(0); 
@@ -142,9 +144,11 @@ void read_nonvol(void)
 
 /*----------------------------------------------------------------
  *
- * void gen_postion()
+ * function: gen_postion
  * 
- * Generate new position varibles based on new sensor diameter
+ * brief: Generate new position varibles based on new sensor diameter
+ * 
+ * return: Position values stored in NONVOL
  * 
  *---------------------------------------------------------------
  *

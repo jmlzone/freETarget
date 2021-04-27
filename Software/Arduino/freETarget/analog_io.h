@@ -35,6 +35,7 @@ void set_LED_PWM(int percent);      // Set the PWM duty cycle
 #define ANALOG_VERSION 5        // Analog Version Input
 #define LED_PWM      5          // PWM Port
 #endif
+#define MAX_ANALOG  0x3ff       // Largest analog input
 
 #ifdef ESP32
   #define TO_VOLTS(x) ( ((double)(x) * 3.3) / 1024.0 )

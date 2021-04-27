@@ -32,12 +32,16 @@ void set_trip_point(int v);
 
 /*----------------------------------------------------------------
  *
- * void self_test
+ * function: void self_test
  *
- * Execute self tests based on the jumper settings
+ * brief: Execute self tests based on the jumper settings
+ * 
+ * return: None
  *
  *----------------------------------------------------------------
  *   
+ *   This function is a large case statement with each element
+ *   of the case statement 
  *--------------------------------------------------------------*/
 unsigned int tick;
 void self_test(uint16_t test)
@@ -239,7 +243,7 @@ void self_test(uint16_t test)
       break;
 
     case T_SET_TRIP:
-      set_trip_point(0);
+      set_trip_point(0);              // Stay in the trip point loop
       json_test = T_HELP;
       break;
 
@@ -270,16 +274,16 @@ void self_test(uint16_t test)
       
     case T_FACE:
       Serial.print("\r\nFace strike test");
-      strike_count = 0;
+      face_strike = 0;
       EEPROM.put(NONVOL_TEST_MODE, T_HELP);     // Stop the test on the next boot cycle
       while (1)
       {        
-        if ( strike_count != 0 )
+        if ( face_strike != 0 )
         {
           set_LED(LED_S, true);     // If something comes in, 
           set_LED(LED_X, true);
           set_LED(LED_Y, true);     // turn on all of the LEDs
-          strike_count = 0;
+          face_strike = 0;
         }
         else
         {
@@ -305,9 +309,11 @@ void self_test(uint16_t test)
   
 /*----------------------------------------------------------------
  * 
- * void POST_1()
+ * function: POST_1()
  * 
- * Show the LEDs are working
+ * brief: Show the LEDs are working
+ * 
+ * return: None
  * 
  *----------------------------------------------------------------
  *
@@ -319,7 +325,11 @@ void self_test(uint16_t test)
  void POST_1(void)
  {
    unsigned int i;
-   
+
+  if ( is_trace )
+  {
+    Serial.print("\r\nPOST 1");
+  }
   for (i=0; i !=4; i++)
   {
     set_LED(LED_S, ~(1 << i) & 1);
@@ -333,9 +343,11 @@ void self_test(uint16_t test)
 
 /*----------------------------------------------------------------
  * 
- * void POST_2()
+ * function: void POST_2()
  * 
- * Verify the counter circuit operation
+ * brief: Verify the counter circuit operation
+ * 
+ * return: None
  * 
  *----------------------------------------------------------------
  *
@@ -343,6 +355,9 @@ void self_test(uint16_t test)
  *  read back the results and look for an expected value.
  *  
  *  Return TRUE if the complete circuit is working
+ *  
+ *  IMPORTANT
+ *  This test will fail if the sensor cable harness is not attached
  *  
  *--------------------------------------------------------------*/
  bool POST_2(void)
@@ -352,6 +367,11 @@ void self_test(uint16_t test)
    unsigned int sensor_status;   // Sensor status
    int          x;               // Time difference (signed)
 
+  if ( is_trace )
+  {
+    Serial.print("\r\nPOST 2");
+  }
+  
 /*
  * The test only works on V2.2 and higher
  */
@@ -359,20 +379,21 @@ void self_test(uint16_t test)
   {
     return true;                   // Fake a positive response  
   }
-
+  
 /*
  * Do the test 5x looking for stuck bits.
  * 
  */
+  set_LED(LED_S, 0);           // Show first test starting
+  set_LED(LED_X, 1);
+  set_LED(LED_Y, 0);
+  delay(200);
   for (i=0; i!= 5; i++)
   {
+    
 /*
  *  Test 1, Trigger the circuit and make sure all of the running states are triggered
  */
-    set_LED(LED_S, 0);           // Show first test starting
-    set_LED(LED_X, 1);
-    set_LED(LED_Y, 0);
-
     random_delay = random(1, 6000);   // Pick a random delay time in us
     stop_counters();                  // Get the circuit ready
     arm_counters();
@@ -414,6 +435,10 @@ void self_test(uint16_t test)
 
       if ( x > 1000 )                 // The time should be 
       {                               // Within 1000 counts.
+        if ( is_trace )
+        {
+          Serial.print("\r\nFailed Clock Test. Counter:"); Serial.print(nesw[i]); Serial.print(" Error:"); Serial.print(x);
+        }
         return false;                 // since there is delay  in
       }                               // Turning off the counters
     }
@@ -423,16 +448,46 @@ void self_test(uint16_t test)
 /*
  * Got here, the test completed successfully
  */
+  digitalWrite(LED_S, 1);           // Show first test Ending
+  digitalWrite(LED_X, 1);
+  digitalWrite(LED_Y, 1);
   return true;
 }
   
+/*----------------------------------------------------------------
+ * 
+ * function: void POST_3()
+ * 
+ * brief: Display the trip point
+ * 
+ * return: None
+ *----------------------------------------------------------------
+ *
+ *  Run the set_trip_point function once
+ *  
+ *--------------------------------------------------------------*/
+ void POST_3(void)
+ {
+   if ( is_trace )
+   {
+    Serial.print("\r\nPOST 3");
+   }
+   
+   set_trip_point(10);               // Show the trip point once (10 cycles)
+   delay(ONE_SECOND);
+   digitalWrite(LED_S, 1);           // Show test test Ending
+   digitalWrite(LED_X, 1);
+   digitalWrite(LED_Y, 1);
+   return;
+ }
  
 /*----------------------------------------------------------------
  * 
- * void set_trip_point()
+ * function: set_trip_point
  * 
- * Read the pot and display the voltage on the LEDs as a grey code
+ * brief: Read the pot and display the voltage on the LEDs as a grey code
  * 
+ * return: Potentiometer set for the desired trip point
  *----------------------------------------------------------------
  *
  *  The reference voltage is divided into 8 bands from 0.5 volt
@@ -444,6 +499,7 @@ void self_test(uint16_t test)
  *  
  *  The function will remain here 
  *     If started by a CAL jumper until the jumper is removed
+ *     If the voltage is out of spec on power up
  *     If started by a {TEST} forever
  *     
  *  Calibration Display
@@ -469,39 +525,73 @@ void self_test(uint16_t test)
  *  No Jumpers          Regular Range
  *  CAL_LOW             Reduced Detection
  *  CAL_HI              Increased Detetion
- *  CAL_LOW + CAL_HIGH  Set LED brightness
  *  
  *--------------------------------------------------------------*/
 #define CT(x) (1023l * (long)(x+25) / 5000l )   // 1/16 volt = 12.8 counts
-const unsigned int volts_to_LED[] = {     0,       1,     0x81,       2,     0x82,       3,      0x83,     4,    0x84,      5,      0x85,      6,      0x86,       7,      255 };
-const unsigned int mv_to_counts[] = {  CT(350), CT(400), CT(450), CT(500),  CT(550), CT(600), CT(650), CT(700), CT(750), CT(800), CT(900), CT(1000), CT(1100), CT(1200)};
+#define SPEC_RANGE   50            // Out of spec if within 50 couts of the rail
+#define BLINK        0x80
+#define NOT_IN_SPEC  0x40
+//                                         0           1         2       3         4        5        6        7        8        9        10      11        12          13      14          15
+const unsigned int volts_to_LED[] = { NOT_IN_SPEC,     1,    BLINK+1,    2,     BLINK+2,    3,    BLINK+3,    4,    BLINK+4,    5,    BLINK+5,    6,     BLINK+6,       7,   BLINK+7,  NOT_IN_SPEC, 0 };
+const unsigned int mv_to_counts[] = {   CT(350),    CT(400), CT(450), CT(500),  CT(550), CT(600), CT(650), CT(700), CT(750), CT(800), CT(900), CT(1000), CT(1100), CT(1200), CT(1300),   CT(5000),  0 };
 
-void set_trip_point(int t)
+void set_trip_point
+  (
+  int pass_count                                            // Number of passes to allow before exiting (0==infinite)
+  )
 {
   unsigned long start_time;                                 // Starting time of average loop 
   unsigned long sample;                                     // Counts read from ADC
-  unsigned int  blink;                                      // Blink the LEDs on an over flow
-  unsigned int start_DIP;                                   // Starting value of the DIP switch
+           bool blinky;                                     // Blink the LEDs on an over flow
+  unsigned int  start_DIP;                                  // Starting value of the DIP switch
+  bool          not_in_spec;                                // Set to true if the input is close to the limits
   
-  Serial.print("\r\nSetting trip point. Cycle power to exit\r\n");
-  blink = 0;
-  start_DIP = read_DIP();
-  
+  if ( pass_count == 0 )                                    // Infinite number of passes?
+  {
+    Serial.print("\r\nSetting trip point. Type ! of cycle power to exit\r\n");
+  }
+  blinky = 0;
+  not_in_spec = true;                                      // Start off by assuming out of spec
+
 /*
  * Loop forever and display the voltage as a grey code
  */
-  while ( ((start_DIP & CALIBRATE) ==  0) || ((read_DIP() & CALIBRATE) != 0) )
+  start_DIP = read_DIP();
+  while ( not_in_spec                                       // Out of tolerance
+          ||   (((start_DIP | read_DIP()) & CALIBRATE) != 0) ) // Started by DIP switch
   {
     start_time = millis();
     sample = 0;
     i=0;
-    while ( millis() - start_time < (ONE_SECOND/10) )      // Read voltage for 1/10 second
+    while ( millis() - start_time < (ONE_SECOND/10) )       // Read voltage for 1/10 second
     {
       sample += analogRead(V_REFERENCE);                    // Read the ADC. 0-1023V
       i++;                                                  // and keep a running total
     }
     sample /= i;                                            // Get the average
 
+
+/*
+ *  See if we are on one of the limits and out of spec.
+ */
+    if ( (sample < SPEC_RANGE)                              // Close to 0
+       || ( sample > (MAX_ANALOG - SPEC_RANGE)) )           // Near VCC 
+    {                                                       // Blink the LEDs * - x - *
+      if ( is_trace )
+      {
+        Serial.print("\n\rOut Of Spec: "); Serial.print(TO_VOLTS(analogRead(V_REFERENCE)));
+      }
+      digitalWrite(LED_S, 1); digitalWrite(LED_X, 0); digitalWrite(LED_Y, 1);
+      delay(ONE_SECOND/10);
+      digitalWrite(LED_S, 0); digitalWrite(LED_X, 1); digitalWrite(LED_Y, 0);
+      delay(ONE_SECOND/10);
+      pass_count = 0;                                       // Stay in this function forever
+      continue;
+    }
+
+ /*
+  * In spec, display the trip level on the LEDs
+  */
     switch (read_DIP() & ( CAL_LOW + CAL_HIGH ) )
     {   
       case (CAL_LOW):                                       // Low Calibration 
@@ -517,22 +607,12 @@ void set_trip_point(int t)
       default:
         break;
     }
-
-    if ( (read_DIP() & ( CAL_LOW + CAL_HIGH )) == (CAL_LOW + CAL_HIGH) )
-    {
-        json_LED_PWM = sample / 4;                         // Scale to 0-256
-        json_LED_PWM *= 100;
-        json_LED_PWM /= 256;                               // Scale 0-100%
-        EEPROM.put(NONVOL_LED_PWM, json_LED_PWM);
-        set_LED_PWM(json_LED_PWM);
-        continue;
-    }
     
  /*
   * Determine what band it belongs to 
   */
    i = 0;
-   while (volts_to_LED[i] != 255)
+   while (volts_to_LED[i] != 0)
    {
      if ( sample <= mv_to_counts[i] )
      {
@@ -540,21 +620,57 @@ void set_trip_point(int t)
      }
      i++;
    }
-   
-   blink ^= 7;
+
+ /*
+  * Use the band to find the LEDs and if they should blink
+  */
+   blinky = !blinky;                      // Toggle the blink
    ch = volts_to_LED[i];
-   if ( ch & 0x80 )
+   if ( ch & BLINK )                      // Blink bit on?
    {
-     ch ^= blink;
-     ch &= volts_to_LED[i]; 
+     if ( blinky )                        // Time to blink?
+     {
+       ch = 0;                            // No, then off
+     }
+     ch &= ~BLINK;
    }
-   if ( volts_to_LED[i] == 255 )
+   if ( ch & NOT_IN_SPEC )                // Out of spec?
    {
-    ch = blink;
+     ch = 2;                              // Flash x - * - x
+     if ( blinky )                        // or    * - x - *
+     {
+       ch = 5; 
+     }
    }
    ch = ~ch;
    Serial.print("\r\nV_Ref: "); Serial.print(TO_VOLTS(analogRead(V_REFERENCE)));
    set_LED(LED_S, ch & 4); set_LED(LED_X, ch & 2); set_LED(LED_Y, ch & 1);
+
+/*
+ * Got to the end.  See if we are going to do this for a fixed time or forever
+ */
+   while ( Serial.available() )       // If there is a 
+   {
+    if ( Serial.read() == '!' )        // ! waiting in the serial port
+    {
+      Serial.print("\r\nExiting calibration\r\n");
+      return;
+    }
+   }
+   
+   if ( pass_count != 0 )             // Set for a finite loop?
+   {
+      pass_count--;                   // Decriment count remaining
+      if ( pass_count == 0 )
+      {
+        return;                       // Bail out when the count is done
+      }
+   }
+   else
+   {
+     Serial.print("\r\nV_Ref: "); Serial.print(TO_VOLTS(analogRead(V_REFERENCE))); Serial.print("  Index: "); Serial.print(i);
+   }
+   delay(ONE_SECOND/10);
  }
 
  /*
@@ -565,10 +681,11 @@ void set_trip_point(int t)
 
 /*----------------------------------------------------------------
  * 
- * void show_analog()
+ * function: show_analog
  * 
- * Read and display as a 4 channel scope trace
+ * brief: Read and display as a 4 channel scope trace
  * 
+ * return: None
  *----------------------------------------------------------------
  *
  *  The output appears as a 1 channel O'scope with all four
@@ -657,10 +774,11 @@ void show_analog(int v)
 
 /*----------------------------------------------------------------
  * 
- * void show_analog_on_PC()
+ * function: show_analog_on_PC
  * 
- * Four channel scope shown on the PC
+ * brief: Four channel scope shown on the PC
  * 
+ * return: None
  *----------------------------------------------------------------
  *
  *  Special purpose version of the software for use on the PC test
@@ -716,9 +834,11 @@ static void show_analog_on_PC(int v)
 
 /*----------------------------------------------------------------
  *
- * void  unit_test()
+ * function: unit_test
  *
- * Setup a known target for sample calculations
+ * brief: Setup a known target for sample calculations
+ * 
+ * return: None
  *
  *----------------------------------------------------------------
  * 
@@ -768,10 +888,12 @@ static void unit_test(unsigned int mode)
 
 /*----------------------------------------------------------------
  *
- * void  sample_calculations()
+ * function: sample_calculations
  *
- * Work out the clock values to generate a particular pattern
+ * brief: Work out the clock values to generate a particular pattern
  *
+ * return: TRUE to be compatable with other calcuation functions
+ * 
  *----------------------------------------------------------------
  * 
  * This function is used to generate a test pattern that the

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------
  *
- * Compute_hit
+ * Compute_hit.ino
  *
  * Determine the score
  *
@@ -34,20 +34,24 @@ unsigned long timer_value[4];     // Array of timer values
 unsigned long minion_value[4];    // Array of timers values from minion
 unsigned long minion_ref;         // Trip voltage from minion
 unsigned int  pellet_calibre;     // Time offset to compensate for pellet diameter
-static char nesw[]= "NESW";
+
 
 /*----------------------------------------------------------------
  *
- * double speed_of_sound(double temperature)
+ * function: speed_of_sound
  *
- * Return the speed of sound (mm / us)
+ * brief: Return the speed of sound (mm / us)
  *
  *----------------------------------------------------------------
  *
- *
+ * The speed of sound is computed based on the board temperature
+ * 
  *--------------------------------------------------------------*/
 
-double speed_of_sound(double temperature)
+double speed_of_sound
+  (
+  double temperature          // Current temperature in degrees C
+  )
 {
   double speed;
 
@@ -64,9 +68,11 @@ double speed_of_sound(double temperature)
 
 /*----------------------------------------------------------------
  *
- * void init_sensors()
+ * function: init_sensors()
  *
- * Setup the constants in the strucure
+ * brief: Setup the constants in the strucure
+ * 
+ * return: Sensor array updated with current geometry
  *
  *----------------------------------------------------------------
  *
@@ -78,6 +84,11 @@ double speed_of_sound(double temperature)
  *
  *               (-,-)         S 
  * 
+ * The layout of the sensors is shown above.  0 is the middle of
+ * the target, and the sensors located at the cardinal points.
+ * 
+ * This function takes the physical location of the sensors (mm)
+ * and generates the sensor array based on time. (ex us / mm)
  *--------------------------------------------------------------*/
 void init_sensors(void)
 {
@@ -114,9 +125,11 @@ void init_sensors(void)
 }
 /*----------------------------------------------------------------
  *
- * void compute_hit()
+ * funtion: compute_hit
  *
- * determine the location of the hit
+ * brief: Determine the location of the hit
+ * 
+ * return: History array updated with new position
  *
  *----------------------------------------------------------------
  *
@@ -306,11 +319,11 @@ unsigned int compute_hit
 
 /*----------------------------------------------------------------
  *
- * find_xy
+ * function: find_xy
  *
- * Calaculate where the shot seems to lie
+ * brief: Calaculate where the shot seems to lie
  * 
- * Return: TRUE if the shot was computed correctly
+ * return: TRUE if the shot was computed correctly
  *
  *----------------------------------------------------------------
  *
@@ -429,9 +442,11 @@ bool find_xy
   
 /*----------------------------------------------------------------
  *
- * void send_score(void)
+ * function: send_score
  *
- * Send the score out over the serial port
+ * brief: Send the score out over the serial port
+ * 
+ * return: None
  *
  *----------------------------------------------------------------
  * 
@@ -459,7 +474,13 @@ void send_score
   double coeff;                 // From Alex Bird
   int    z;
   double score;
-  
+
+
+  if ( is_trace )
+  {
+    Serial.print("\r\nSending the score");
+  }
+   
  /* 
   *  Work out the hole in perfect coordinates
   */
@@ -483,7 +504,6 @@ void send_score
 #if ( S_SHOT )
   PRINT("\"shot\":");      PRINT(shot); PRINT(", ");
   PRINT("\"miss\": 0, ");
-  strike_count = 0;
   
   if ( json_name_id != 0 )
   {
@@ -532,9 +552,11 @@ void send_score
  
 /*----------------------------------------------------------------
  *
- * void send_miss(void)
+ * vfunction: send_miss
  *
- * Send out a miss message
+ * brief: Send out a miss message
+ * 
+ * return: None
  *
  *----------------------------------------------------------------
  * 
@@ -575,10 +597,11 @@ void send_miss
 
 /*----------------------------------------------------------------
  *
- * void show_timer(void)
+ * function: show_timer
  *
- * Display a timer message to identify errors
+ * brief: Display a timer message to identify errors
  *
+ * return: None
  *----------------------------------------------------------------
  * 
  * The error is sent as:
@@ -623,10 +646,12 @@ void send_timer
 
 /*----------------------------------------------------------------
  *
- * unsigned int hamming()
+ * function: hamming
  *
- * Compute the Hamming weight of the input
+ * brief: Compute the Hamming weight of the input
  *
+ * return: Hamming weight of the input word
+ * 
  *----------------------------------------------------------------
  *    
  * Add up all of the 1's in the sample.

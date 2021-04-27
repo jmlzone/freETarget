@@ -21,28 +21,30 @@
 
 history_t history;  
 
-double        s_of_sound;               // Speed of sound
+double       s_of_sound;                // Speed of sound
 unsigned int shot = 0;                  // Shot counter
-unsigned int strike_count = 0;          // Miss indicator
-unsigned int strike_count_sample = 0;   // Captured miss indicator
+bool         face_strike = 0;           // Miss indicator
 bool         is_trace = false;          // TRUE if trace is enabled
 
-char* names[] = { "ANON",    "BOSS",   "MINION",
-                  "DOC",     "DOPEY",  "HAPPY",   "GRUMPY", "BASHFUL", "SNEEZEY", "SLEEPY",
-                  "RUDOLF",  "DONNER", "BLITXEM", "DASHER", "PRANCER", "VIXEN",   "COMET", "CUPID", "DUNDER",
-                  "ODIN",    "WODEN",   "THOR",   "BALDAR",
-                  0};
+const char* names[] = { "ANON",    "BOSS",   "MINION",
+                        "DOC",     "DOPEY",  "HAPPY",   "GRUMPY", "BASHFUL", "SNEEZEY", "SLEEPY",
+                        "RUDOLF",  "DONNER", "BLITXEM", "DASHER", "PRANCER", "VIXEN",   "COMET", "CUPID", "DUNDER",
+                        "ODIN",    "WODEN",   "THOR",   "BALDAR",
+                        0};
                   
+char* nesw = "NESW";                    // Cardinal Points
+                 
 /*----------------------------------------------------------------
  * 
- * void setup()
+ * function: setup()
  * 
- * Initialize the board and prepare to run
+ * brief: Initialize the board and prepare to run
  * 
- *----------------------------------------------------------------
- */
+ * return: None
+ * 
+ *--------------------------------------------------------------*/
 
-void setup() 
+void setup(void) 
 {
   int i;
   
@@ -58,7 +60,8 @@ void setup()
 /*
  *  Set up the port pins
  */
-  init_gpio();
+  init_gpio();  
+  is_trace = read_DIP() & (VERBOSE_TRACE);   
   init_sensors();
   init_analog_io();
 
@@ -66,14 +69,12 @@ void setup()
  * Run the power on self test
  */
   POST_1();                           // Cycle the LEDs
-  if ( POST_2() == false )            // If the timers fail, 
+  while( POST_2() == false )          // If the timers fail, 
   {
-    while( 1 )
-    {
-      continue;                       // Don't continue to the application
-    }
+    continue;                         // Don't continue to the application
   }
-
+  POST_3();                           // Show the trip point
+  
 /*
  * Initialize variables
  */
@@ -108,9 +109,11 @@ void setup()
 
 /*----------------------------------------------------------------
  * 
- * void loop()
+ * function: loop()
  * 
- * Main control loop
+ * brief: Main control loop
+ * 
+ * return: None
  * 
  *----------------------------------------------------------------
  */
@@ -142,7 +145,7 @@ void loop()
     now = micros();               // Reset the power down timer if something comes in
     set_LED_PWM(json_LED_PWM);    // Put the LED back on if it was off
   }
-  
+
 /*
  * Cycle through the state machine
  */
@@ -175,8 +178,12 @@ void loop()
  */
   case ARM:
     arm_counters();
+
+    enable_interrupt();               // Turn on the face strike interrupt
+    face_strike = false;              // Reset the face strike count
+    
     set_LED_PWM(json_LED_PWM);        // Turn the LEDs on
-    strike_count = 0;                 // Reset the face strike count
+
     sensor_status = is_running();
     power_save = micros();            // Start the power saver time
     
@@ -222,18 +229,6 @@ void loop()
         set_LED(LED_Y, false);  
         delay(ONE_SECOND);
       }      
-      
-      if ( strike_count != 0 )
-      {
-        Serial.print("\r\nStrike sensor tripped");
-        for (i=0; i != 6; i++)
-        {
-          set_LED(LED_S, i & 1);   // Blink the LEDs
-          set_LED(LED_X, i & 1);
-          set_LED(LED_Y, i & 1);  
-          delay(ONE_SECOND/4);
-        }
-      }
     }
     break;
     
@@ -241,20 +236,26 @@ void loop()
  * Wait for the shot
  */
   case WAIT:
-    if ( (json_power_save != 0 ) && (((micros()-power_save) / 1000000 / 60) >= json_power_save) )
+    if ( (json_power_save != 0 ) 
+        && (((micros()-power_save) / 1000000 / 60) >= json_power_save) )
     {
       set_LED_PWM(0);
     }
 
     sensor_status = is_running();
-    
+
+    if ( face_strike )                    // Something hit the front
+    {
+      state = SEND_MISS;                  // Show it's a miss
+      break;
+    }
+
     if ( sensor_status != 0 )             // Shot detected
     {
       now = micros();                     // Remember the starting time
       set_LED(LED_S, false);              // No longer waiting
       set_LED(LED_X, true);               // Aquiring
       set_LED(LED_Y, false);              // Aquiring
-      strike_count_sample = strike_count; // Grab the face strike value now
       state = AQUIRE;
     }
     break;
@@ -275,11 +276,6 @@ void loop()
  *  Reduce the data to a score
  */
   case REDUCE:   
-    if ( strike_count_sample != 0 )
-    {
-      state = SEND_MISS;
-      break;
-    }
     if ( is_trace )
     {
       Serial.print("\r\nTrigger: "); 
@@ -299,6 +295,15 @@ void loop()
     set_LED(LED_X, true);               // 
     set_LED(LED_Y, true);               //
     location = compute_hit(sensor_status, &history, false);
+
+    if ( (timer_value[N] == 0) || (timer_value[E] == 0) || (timer_value[S] == 0) || (timer_value[W] == 0) ) // If any one of the timers is 0, that's a miss
+    {
+      Serial.print("is_running"); Serial.print(is_running()); Serial.print(" ");
+      
+      state = SEND_MISS;
+      delay(ONE_SECOND);
+      break;
+    }
     send_score(&history, shot_number, sensor_status);
     state = WASTE;
     shot_number++;                   
@@ -325,29 +330,33 @@ void loop()
  * Show an error occured
  */
   case SEND_MISS:   
-    if ( json_send_miss == 0)
-    {
-      break;
-      
-    }
+    state = SET_MODE;                         // Next time go to waste time 
+    
     if ( is_trace )
     {
       Serial.print("\r\nFace Strike...\r\n");
     } 
 
-    set_LED_PWM(0);             // Flash the LED
-    delay(ONE_SECOND/4);
-    set_LED_PWM(json_LED_PWM);
-    
+    face_strike = false;
+
     for (i=0; i != 6; i++)
     {
-      set_LED(LED_S, i & 1);    // Blink the LEDs to show an error
-      set_LED(LED_X, i & 1);    // 
-      set_LED(LED_Y, i & 1);    //
+      set_LED(LED_S, i & 1);                  // Blink the LEDs to show an error
+      set_LED(LED_X, i & 1);                  // 
+      set_LED(LED_Y, i & 1);                  //
       delay(ONE_SECOND/4);
-    } 
+    }
+    
+    if ( json_send_miss == 0)
+    {
+      break;
+    }
+    
+    set_LED_PWM(0);                           // Flash the LED
+    delay(ONE_SECOND/4);
+    set_LED_PWM(json_LED_PWM);
     send_miss(shot);
-    state = WASTE;              // Advance the paper in case there is a hole
+ 
     break;
     }
 

@@ -12,7 +12,7 @@
 #define S_POLAR     true        // Include polar coordinates
 #define S_COUNTERS  true        // Include counter values
 #define S_MISC      true        // Include miscelaneous diagnotics
-#define S_SCORE     true        // Include estimated score
+#define S_SCORE     false       // Include estimated score
 
 /*
  *  Local Structures
@@ -32,6 +32,8 @@ struct sensor
 };
 
 typedef struct sensor sensor_t;
+
+extern unsigned long timer_value[4];     // Array of timer values
 
 /*
  *  Public Funcitons
