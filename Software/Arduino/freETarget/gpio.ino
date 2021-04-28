@@ -5,16 +5,15 @@
  * General purpose GPIO driver
  * 
  * ----------------------------------------------------*/
-#include "json.h"
-#include "analog_io.h"
+#include "io_includes.h"
 
-struct GPIO {
+typedef struct {
   byte port;
   byte in_or_out;
   byte value;
-};
+} GPIO_INIT;
 
-GPIO init_table[] = {
+GPIO_INIT init_table[] = {
   {D0,          INPUT_PULLUP, 0 },
   {D1,          INPUT_PULLUP, 0 },
   {D2,          INPUT_PULLUP, 0 },

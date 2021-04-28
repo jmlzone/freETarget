@@ -8,11 +8,7 @@
 
 #include "mechanical.h"
 #include "compute_hit.h"
-#include "freETarget.h"
-#include "compute_hit.h"
-#include "analog_io.h"
-#include "json.h"
-#include "arduino.h"
+#include "io_includes.h"
 
 #define THRESHOLD (0.001)
 

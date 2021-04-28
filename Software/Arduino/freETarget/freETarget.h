@@ -12,24 +12,32 @@
 #define _FREETARGET_H
 
 #ifdef ESP32
-#define SOFTWARE_VERSION "\"4.00 preliminar\""
+#define SOFTWARE_VERSION "\"4.00 preliminary\""
 #else
 #define SOFTWARE_VERSION "\"3.00.4 April 25, 2021\""
+#endif
 #define REV_210    21
 #define REV_220    22
 #define REV_290    29
 #define REV_300   300
 #define REV_400   400
-#endif
 #define INIT_DONE       0xabcd        // Initialization complete signature
 
 /*
  * Compilation Flags
  */
 #define SAMPLE_CALCULATIONS false     // Trace the COUNTER values
+#ifdef ESP32
+#define AUX_SERIAL         HardwareSerial(2)    // Auxilary Connector
+#define AUX_TX             16
+#define AUX_RX             17
+#define DISPLAY_SERIAL     HardwareSerial(1)    // Serial port for slave display
+#define DISPLAY_TX         14
+#define DISPLAY_RX         15
+#else
 #define AUX_SERIAL         Serial3    // Auxilary Connector
 #define DISPLAY_SERIAL     Serial2    // Serial port for slave display
-
+#endif
 #define PRINT(x) {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);}
 
 /*
@@ -57,14 +65,14 @@
 #define S 2
 #define W 3
 
-struct history
+typedef struct // history
 {
   unsigned int shot;    // Current shot number
   double       x;       // X location of shot
   double       y;       // Y location of shot
-};
+} history_t;
 
-typedef struct history history_t;
+//typedef struct history history_t;
 
 extern double     s_of_sound;
 

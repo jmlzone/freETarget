@@ -5,20 +5,19 @@
  * General purpose GPIO driver
  * 
  * ----------------------------------------------------*/
-#include "json.h"
-#include "analog_io.h"
+#include "io_includes.h"
 #include <Adafruit_NeoPixel.h>
 #define PIXEL_PIN    36    // Digital IO pin connected to the NeoPixels.
 #define PIXEL_COUNT   3
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-struct GPIO {
+typedef struct {
   byte port;
   byte in_or_out;
   byte value;
-};
+} GPIO_INIT;
 
-GPIO init_table[] = {
+GPIO_INIT init_table[] = {
   {LED_PWM,     OUTPUT, 1},
   {RTS_U,       OUTPUT, 1},
   {CTS_U,       INPUT_PULLUP, 0},
@@ -88,14 +87,14 @@ void init_gpio(void)
    i2c wrapper functions
    (because the 'wire library' is a bit weak)
  *-----------------------------------------------------*/
- byte i2c_buf[16]; // A static buffer used for I2C write and read
- void i2c_write_reg(byte dev_addr, byte reg_addr, byte val){
+ uint8_t i2c_buf[16]; // A static buffer used for I2C write and read
+ void i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val){
   Wire.beginTransmission(dev_addr);
   Wire.write(reg_addr);
   Wire.write(val);
   Wire.endTransmission();
 }
- void i2c_write_bytes(byte dev_addr, byte reg_addr, byte n){
+ void i2c_write_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n){
    int i;
    Wire.beginTransmission(dev_addr);
    Wire.write(reg_addr);
@@ -104,14 +103,14 @@ void init_gpio(void)
    }
    Wire.endTransmission();
  }
- byte i2c_read_reg(byte dev_addr, byte reg_addr) {
+ uint8_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr) {
    Wire.beginTransmission(dev_addr);
    Wire.write(reg_addr);
    Wire.endTransmission();
    Wire.requestFrom(dev_addr,1);
    return(Wire.read());
  }
- void i2c_read_bytes(byte dev_addr, byte reg_addr, byte n) {
+ void i2c_read_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n) {
    Wire.beginTransmission(dev_addr);
    Wire.write(reg_addr);
    Wire.endTransmission();
@@ -168,7 +167,7 @@ unsigned int is_running (void)
 void arm_counters(void)
   {
     i2c_write_reg(FPGA_ADDR,CONTROL,(CLEAR|STOP));
-    i2c_write_reg(FPGA_ADDR,CONTROL,0);
+    //i2c_write_reg(FPGA_ADDR,CONTROL,0); non need these bits self clear
 /*
  *   Attach the interrupt
  */
@@ -191,7 +190,7 @@ void stop_counters(void)
 void stop_enable_counters(void)
   {
     i2c_write_reg(FPGA_ADDR,CONTROL,STOP);
-    i2c_write_reg(FPGA_ADDR,CONTROL, 0);
+    //i2c_write_reg(FPGA_ADDR,CONTROL, 0); not needed this bit self clears
   return;
   }
 void start_clock(void)
@@ -200,6 +199,45 @@ void start_clock(void)
     i2c_write_reg(FPGA_ADDR,CONTROL, 0);
   return;
   }
+
+/*-----------------------------------------------------
+ * 
+ * function: enable_interrupt
+ * function: disable_interrupt
+ * 
+ * brief: Turn on the face interrupt
+ * 
+ * return: NONE
+ * 
+ *-----------------------------------------------------
+ *
+ * Enable interrupts works by attaching an interrupt
+ * 
+ *-----------------------------------------------------*/
+void enable_interrupt(void)
+{
+  if ( revision() >= REV_300 )
+  {
+    attachInterrupt(digitalPinToInterrupt(FACE_SENSOR),  face_ISR, CHANGE);
+
+
+  }
+  
+
+
+
+  return;
+}
+
+void disable_interrupt(void)
+{
+  if ( revision() >= REV_300 )
+  {
+    detachInterrupt(digitalPinToInterrupt(FACE_SENSOR));
+  }
+
+  return;
+}
 
 /*-----------------------------------------------------
  * 
@@ -308,9 +346,9 @@ void read_timers(void)
    for (i=0; i != json_paper_time; i++ )
    {
      j = 7 * (1.0 - ((float)i / float(json_paper_time)));
-     set_LED(LED_S, j & 1);                // Show the paper advancing
-     set_LED(LED_X, j & 2);                // 
-     set_LED(LED_Y, j & 4);                // 
+     set_LED(LED_S, (bool) (j & 1));                // Show the paper advancing
+     set_LED(LED_X, (bool) (j & 2));                // 
+     set_LED(LED_Y, (bool) (j & 4));                // 
      delay(PAPER_STEP);                    // in 100ms increments
     }
     
@@ -329,7 +367,6 @@ void read_timers(void)
   */
   return;
  }
- 
 /*-----------------------------------------------------
  * 
  * function: face_ISR
@@ -351,15 +388,14 @@ void read_timers(void)
  *-----------------------------------------------------*/
  void face_ISR(void)
  {
-  strike_count++;
+  face_strike = true;      // Got a face strike
 
-/*
- *  Disable interrupts
- */
-  if ( revision() >= REV_300 )
+  if ( is_trace )
   {
-    detachInterrupt(digitalPinToInterrupt(FACE_SENSOR));
+    Serial.print("\r\nface_ISR()");
   }
-   return;
+
+  disable_interrupt();
+
+  return;
  }
- 

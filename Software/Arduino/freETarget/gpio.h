@@ -1,6 +1,9 @@
 /*
  * Global functions
  */
+#ifndef _GPIOIO_H_
+#define _GPIPIO_H_
+
 void init_gpio(void);                         // Initialize the GPIO ports
 void arm_counters(void);                      // Make the board ready
 unsigned int is_running(void);                // Return a bit mask of running sensors 
@@ -88,3 +91,4 @@ void disable_interrupt(void);                 // Turn off the face strike interr
 
 
 #define EOF 0xFF
+#endif

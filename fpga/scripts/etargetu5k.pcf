@@ -1,0 +1,43 @@
+# for the 5k
+# section A
+#set_io sd5m 25
+set_io sd5p 23
+set_io mic_north 27
+set_io mic_east 26
+set_io mic_south 28
+set_io mic_west 31
+set_io clk64M 35
+set_io -pullup yes DIPA 36
+set_io -pullup yes DIPB 43
+set_io -pullup yes DIPC 38
+set_io -pullup yes DIPD 42
+
+#section B
+set_io pcm2 6
+set_io pcm3 9
+set_io pcm4 10
+set_io pcm5 11
+set_io sd3p 12
+#set_io sd3m 21
+set_io sd4p 13
+#set_io sd4m 20
+set_io ares 14
+set_io scl 15
+set_io sda_pin 16
+set_io mode 17
+
+#section C
+set_io pcm0 46
+set_io sd0p 47
+#set_io sd0m 44
+set_io sd1p 48
+#set_io sd1m 45
+set_io pcm1 2
+set_io sd2p 4
+#set_io sd2m 3
+
+
+
+
+
+

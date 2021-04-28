@@ -14,10 +14,10 @@ module etarget(
   input        sd4p,
   input        sd5p,
   input        mode,
-  input DIPA,
-  input DIPB,
-  input DIPC,
-  input DIPD,
+  input        DIPA,
+  input        DIPB,
+  input        DIPC,
+  input        DIPD,
         
   output logic pcm0,
   output logic pcm1,
@@ -40,7 +40,6 @@ SB_IO #(
     .D_OUT_0(1'b0),
     .D_IN_0(sda)
 );
-/*
 //comparitor pins
 SB_IO #(
     .PIN_TYPE(6'b000000),
@@ -74,6 +73,7 @@ SB_IO #(
   .D_IN_0 (comp1),
   .D_IN_1 ()
 );
+/*
 SB_IO #(
     .PIN_TYPE(6'b000000),
     .PULLUP(1'b0),
@@ -152,6 +152,7 @@ SB_IO #(
  8 RO west low
  9 RO west hi
  a run status west,south, east,north
+ b dip d, dip c, dip b, dip a
 ----------------------------------------------------------------------*/
 
 logic [7:0] version;
@@ -160,6 +161,8 @@ logic [7:0] control;
 logic 	    clear;
 logic 	    stop;
 logic       quiet;
+logic 	    start;
+ 	    
 
 logic [15:0] count_north;
 logic [15:0] count_south;
@@ -185,13 +188,13 @@ jml_i2c #(.MYI2C_ADDR('h10)) i2c(
 // 64 MHZ will be used for sd adc
 // 8 mhz for direction counter
 logic [2:0]  clkdiv;
-logic 	     clk8m;
+logic 	     clk8M;
 always @(posedge clk64M or posedge ares)
   if(ares)
     clkdiv <= 0;
   else
     clkdiv <= clkdiv + 1'b1;
-assign clk8m = &clkdiv;
+assign clk8M = &clkdiv;
 
 
 // read mux
@@ -221,7 +224,7 @@ always @*
     endcase // case (addr)
   end // always @ *
 //write data
-always @(posedge clk8m or posedge ares)
+always @(posedge clk8M or posedge ares)
   begin
     if(ares)
       begin
@@ -233,7 +236,7 @@ always @(posedge clk8m or posedge ares)
 	  if(addr == 6'h1) control <= write_data;
       end
       if(clear | stop)
-         control <= control & 8'hfc;  //auto clean low bits
+         control <= control & 8'hfc;  //auto clear low bits
     end // else: !if(ares)
   end // always @ (posedge clk8m or posedge ares)
 
@@ -241,32 +244,33 @@ always @(posedge clk8m or posedge ares)
 assign clear = control[0];
 assign stop = control[1];
 assign quiet = control[2];
+assign start = control[3];
 
 // counters
  target_counter north(
-   .clk(clk8m),
-   .start(mic_north),
+   .clk(clk8M),
+   .start(mic_north|start),
    .run(run_north),
    .count(count_north),
    .*
   );
  target_counter south(
-   .clk(clk8m),
-   .start(mic_south),
+   .clk(clk8M),
+   .start(mic_south|start),
    .run(run_south),
    .count(count_south),
    .*
   );
  target_counter east(
-   .clk(clk8m),
-   .start(mic_east),
+   .clk(clk8M),
+   .start(mic_east|start),
    .run(run_east),
    .count(count_east),
    .*
   );
  target_counter west(
-   .clk(clk8m),
-   .start(mic_west),
+   .clk(clk8M),
+   .start(mic_west|start),
    .run(run_west),
    .count(count_west),
    .*
@@ -275,14 +279,22 @@ assign quiet = control[2];
 /*----------------------------------------------------------------------
  instances of the adc's for now  no signal processing
 ----------------------------------------------------------------------*/
- sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc0 (
+/*
+  sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc0 (
   .clk(clk64M),
   .ares(ares),
-  .comp(sd0p),
-//  .comp(comp0),
+//  .comp(sd0p),
+  .comp(comp0),
   .sdm(pcm0),
   .q(conv0),
   .wr() );
+ */
+iadc adf0(.comp(comp0), .sdm(pcm0), .clk(clk64M), .q(conv0), .wr(), .*);
+//iadc adf1(.comp(comp1), .sdm(pcm1), .clk(clk64M), .q(conv1), .wr(), .*);
+//iadc adf2(.comp(comp2), .sdm(pcm2), .clk(clk64M), .q(conv2), .wr(), .*);
+//iadc adf3(.comp(comp3), .sdm(pcm3), .clk(clk64M), .q(conv3), .wr(), .*);
+//iadc adf4(.comp(comp4), .sdm(pcm4), .clk(clk64M), .q(conv4), .wr(), .*);
+//iadc adf5(.comp(comp5), .sdm(pcm5), .clk(clk64M), .q(conv5), .wr(), .*);
 /*
 sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc1 (
   .clk(clk64M),

@@ -7,7 +7,7 @@
  * ----------------------------------------------------*/
 
 #include <EEPROM.h>
-#include "json.h"
+#include "io_includes.h"
 #include "nonvol.h"
 
 static char input_JSON[128];

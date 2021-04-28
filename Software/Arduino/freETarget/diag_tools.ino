@@ -7,14 +7,8 @@
  *
  *---------------------------------------------------------------*/
 
-#include "freETarget.h"
+#include "io_includes.h"
 #include "mechanical.h"
-#include "analog_io.h"
-#ifdef ESP32
-  #include gpioESP32.h
-#else
-  #include "gpio.h"
-#endif
 #include "diag_tools.h"
 
 const char* which_one[4] = {"North: ", "East: ", "South: ", "West: "};
@@ -113,9 +107,9 @@ void self_test(uint16_t test)
       Serial.print("\r\n");
       for (tick=0; tick != 8; tick++)
       {
-        set_LED(LED_S, (~tick) & 1);
-        set_LED(LED_X, (~tick) & 2);
-        set_LED(LED_Y, (~tick) & 4);
+        set_LED(LED_S, (bool) !((~tick) & 1));
+        set_LED(LED_X, (bool) !((~tick) & 2));
+        set_LED(LED_Y, (bool) !((~tick) & 4));
         delay(250);
       }
       json_test = T_HELP;               // and stop the test
@@ -127,9 +121,9 @@ void self_test(uint16_t test)
       stop_counters();
       arm_counters();
 
-      set_LED(LED_S, 0);
-      set_LED(LED_X, 1);
-      set_LED(LED_Y, 1);
+      set_LED(LED_S, (bool) !0);
+      set_LED(LED_X, (bool) !1);
+      set_LED(LED_Y, (bool) !1);
       
       if ( json_test == T_CLOCK )
       {
@@ -160,10 +154,7 @@ void self_test(uint16_t test)
       }
       sensor_status = is_running();       // Remember all of the running timers
       stop_counters();
-      timer_value[N] = read_counter(N);
-      timer_value[E] = read_counter(E);
-      timer_value[S] = read_counter(S);
-      timer_value[W] = read_counter(W); // Read the counters
+      read_timers(); // read the counters
       if ( json_test == T_CLOCK )       // Test the results
       {
         sample = timer_value[N];
@@ -188,9 +179,9 @@ void self_test(uint16_t test)
       }
       send_timer(sensor_status);
       
-      set_LED(LED_S, 1);
-      set_LED(LED_X, 1);
-      set_LED(LED_Y, 0);
+      set_LED(LED_S, (bool) !1);
+      set_LED(LED_X, (bool) !1);
+      set_LED(LED_Y, (bool) !0);
       delay(1000);
       break;
 
@@ -280,16 +271,16 @@ void self_test(uint16_t test)
       {        
         if ( face_strike != 0 )
         {
-          set_LED(LED_S, true);     // If something comes in, 
-          set_LED(LED_X, true);
-          set_LED(LED_Y, true);     // turn on all of the LEDs
+          set_LED(LED_S, (bool) !true);     // If something comes in, 
+          set_LED(LED_X, (bool) !true);
+          set_LED(LED_Y, (bool) !true);     // turn on all of the LEDs
           face_strike = 0;
         }
         else
         {
-          set_LED(LED_S, false);
-          set_LED(LED_X, false);
-          set_LED(LED_Y, false);
+          set_LED(LED_S, (bool) !false);
+          set_LED(LED_X, (bool) !false);
+          set_LED(LED_Y, (bool) !false);
         }
         delay(500);
       }
@@ -332,9 +323,9 @@ void self_test(uint16_t test)
   }
   for (i=0; i !=4; i++)
   {
-    set_LED(LED_S, ~(1 << i) & 1);
-    set_LED(LED_X, ~(1 << i) & 2);
-    set_LED(LED_Y, ~(1 << i) & 4);
+    set_LED(LED_S, (bool) !(~(1 << i) & 1));
+    set_LED(LED_X, (bool) !(~(1 << i) & 2));
+    set_LED(LED_Y, (bool) !(~(1 << i) & 4));
     delay(250);
   }
 
@@ -384,9 +375,9 @@ void self_test(uint16_t test)
  * Do the test 5x looking for stuck bits.
  * 
  */
-  set_LED(LED_S, 0);           // Show first test starting
-  set_LED(LED_X, 1);
-  set_LED(LED_Y, 0);
+  set_LED(LED_S, (bool) !0);           // Show first test starting
+  set_LED(LED_X, (bool) !1);
+  set_LED(LED_Y, (bool) !0);
   delay(200);
   for (i=0; i!= 5; i++)
   {
@@ -419,15 +410,19 @@ void self_test(uint16_t test)
  * Test 2. Read back the counters and make sure they match
  */
     delay(50);
-    set_LED(LED_S, 0);           // Show second test starting
-    set_LED(LED_X, 0);
-    set_LED(LED_Y, 1);
+    set_LED(LED_S, (bool) !0);           // Show second test starting
+    set_LED(LED_X, (bool) !0);
+    set_LED(LED_Y, (bool) !1);
 
     random_delay *= 8;                // Convert to clock ticks
     for (j=N; j != (W+1); j++ )       // Check all of the counters
     {
-      x = read_counter(j) - random_delay;
- 
+#ifdef ESP32
+      read_timers(); // note this I2C read is slow compared to a single read, the delta/difference may be longer
+      x = timer_value[j] - random_delay;
+#else
+     x = read_counter(j) - random_delay;
+#endif
       if ( x < 0 )
       {
         x = -x;                       // Get the absolute value
@@ -644,7 +639,7 @@ void set_trip_point
    }
    ch = ~ch;
    Serial.print("\r\nV_Ref: "); Serial.print(TO_VOLTS(analogRead(V_REFERENCE)));
-   set_LED(LED_S, ch & 4); set_LED(LED_X, ch & 2); set_LED(LED_Y, ch & 1);
+   set_LED(LED_S, (bool) !(ch & 4)); set_LED(LED_X, (bool) !(ch & 2)); set_LED(LED_Y, (bool) !(ch & 1));
 
 /*
  * Got to the end.  See if we are going to do this for a fixed time or forever
@@ -712,9 +707,9 @@ void show_analog(int v)
   char o_scope[FULL_SCALE];
   unsigned long now;
   
-  set_LED(LED_S, ~(1 << cycle) & 1);
-  set_LED(LED_X, ~(1 << cycle) & 2);
-  set_LED(LED_Y, ~(1 << cycle) & 4);
+  set_LED(LED_S, (bool) !(~(1 << cycle) & 1));
+  set_LED(LED_X, (bool) !(~(1 << cycle) & 2));
+  set_LED(LED_Y, (bool) !(~(1 << cycle) & 4));
   cycle = (cycle+1) % 4;
 
  /*

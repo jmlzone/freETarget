@@ -5,15 +5,8 @@
  * Software to run the Air-Rifle / Small Bore Electronic Target
  * 
  *-------------------------------------------------------------*/
-#include "freETarget.h"
-#ifdef ESP32
-  #include gpioESP32.h
-#else
-  #include "gpio.h"
-#endif
+#include "io_includes.h"
 #include "compute_hit.h"
-#include "analog_io.h"
-#include "json.h"
 #include "EEPROM.h"
 #include "nonvol.h"
 #include "mechanical.h"
@@ -52,9 +45,13 @@ void setup(void)
  *  Setup the serial port
  */
   Serial.begin(115200);
+#ifdef ESP32
+  AUX_SERIAL.begin(115200,SERIAL_8N1,AUX_RX,AUX_TX); 
+  DISPLAY_SERIAL.begin(115200,SERIAL_8N1,DISPLAY_RX,DISPLAY_TX); 
+#else
   AUX_SERIAL.begin(115200); 
   DISPLAY_SERIAL.begin(115200); 
-  
+#endif
   PRINT("\r\nfreETarget "); PRINT(SOFTWARE_VERSION); PRINT("\r\n");
   
 /*
@@ -193,40 +190,40 @@ void loop()
       {
         Serial.print("\r\n\nWaiting...");
       }
-      set_LED(LED_S, true);     // Show we are waiting
-      set_LED(LED_X, false);    // No longer processing
-      set_LED(LED_Y, false);   
+      set_LED(LED_S, (bool) true);     // Show we are waiting
+      set_LED(LED_X, (bool) false);    // No longer processing
+      set_LED(LED_Y, (bool) false);   
       state = WAIT;             // Fall through to WAIT
     }
     else
     {
-      set_LED(LED_X, true);    // show a fault  
+      set_LED(LED_X, (bool) true);    // show a fault  
       if ( sensor_status & TRIP_NORTH  )
       {
         Serial.print("\r\n{ \"Fault\": \"NORTH\" }");
-        set_LED(LED_S, false);   // Fault code North
-        set_LED(LED_Y, false);  
+        set_LED(LED_S, (bool) false);   // Fault code North
+        set_LED(LED_Y, (bool) false);  
         delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_EAST  )
       {
         Serial.print("\r\n{ \"Fault\": \"EAST\" }");
-        set_LED(LED_S, false);   // Fault code East
-        set_LED(LED_Y, true);  
+        set_LED(LED_S, (bool) false);   // Fault code East
+        set_LED(LED_Y, (bool) true);  
         delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_SOUTH )
       {
         Serial.print("\r\n{ \"Fault\": \"SOUTH\" }");
-        set_LED(LED_S, true);  // Fault code South
-        set_LED(LED_Y, true);  
+        set_LED(LED_S, (bool) true);  // Fault code South
+        set_LED(LED_Y, (bool) true);  
          delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_WEST )
       {
         Serial.print("\r\n{ \"Fault\": \"WEST\" }");
-        set_LED(LED_S, true);   // Fault code West
-        set_LED(LED_Y, false);  
+        set_LED(LED_S, (bool) true);   // Fault code West
+        set_LED(LED_Y, (bool) false);  
         delay(ONE_SECOND);
       }      
     }
@@ -253,9 +250,9 @@ void loop()
     if ( sensor_status != 0 )             // Shot detected
     {
       now = micros();                     // Remember the starting time
-      set_LED(LED_S, false);              // No longer waiting
-      set_LED(LED_X, true);               // Aquiring
-      set_LED(LED_Y, false);              // Aquiring
+      set_LED(LED_S, (bool) false);              // No longer waiting
+      set_LED(LED_X, (bool) true);               // Aquiring
+      set_LED(LED_Y, (bool) false);              // Aquiring
       state = AQUIRE;
     }
     break;
@@ -291,9 +288,9 @@ void loop()
 
       Serial.print("\r\nReducing...");
     }
-    set_LED(LED_S, true);               // Light All
-    set_LED(LED_X, true);               // 
-    set_LED(LED_Y, true);               //
+    set_LED(LED_S, (bool) true);               // Light All
+    set_LED(LED_X, (bool) true);               // 
+    set_LED(LED_Y, (bool) true);               //
     location = compute_hit(sensor_status, &history, false);
 
     if ( (timer_value[N] == 0) || (timer_value[E] == 0) || (timer_value[S] == 0) || (timer_value[W] == 0) ) // If any one of the timers is 0, that's a miss
@@ -341,9 +338,9 @@ void loop()
 
     for (i=0; i != 6; i++)
     {
-      set_LED(LED_S, i & 1);                  // Blink the LEDs to show an error
-      set_LED(LED_X, i & 1);                  // 
-      set_LED(LED_Y, i & 1);                  //
+      set_LED(LED_S, (bool) (i & 1));                  // Blink the LEDs to show an error
+      set_LED(LED_X, (bool) (i & 1));                  // 
+      set_LED(LED_Y, (bool) (i & 1));                  //
       delay(ONE_SECOND/4);
     }
     

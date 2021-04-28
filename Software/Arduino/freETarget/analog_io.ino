@@ -5,14 +5,7 @@
  * General purpose Analog driver
  * 
  * ----------------------------------------------------*/
-
-#include "freETarget.h"
-#include "analog_io.h"
-#ifdef ESP32
-  #include "gpioESP32.h"
-#else
-  #include "gpio.h"
-#endif
+#include "io_includes.h"
 #include "Wire.h"
 
 /*----------------------------------------------------------------
@@ -166,9 +159,9 @@ void cal_analog(void)
     {
      steps = 0;
     }
-  set_LED(LED_S, (steps & 1) == 0);
-  set_LED(LED_X, (steps & 2) == 0);
-  set_LED(LED_Y, (steps & 4) == 0);
+  set_LED(LED_S, (bool) !((steps & 1) == 0));
+  set_LED(LED_X, (bool) !((steps & 2) == 0));
+  set_LED(LED_Y, (bool) !((steps & 4) == 0));
 
   
 /*
@@ -209,7 +202,7 @@ double temperature_C(void)
 /*
  * Read in the temperature register
  */
-  Wire.requestFrom(TEMP_IC, 2);
+  Wire.requestFrom((uint8_t) TEMP_IC, (uint8_t) 2);
   raw = Wire.read();
   raw <<= 8;
   raw += Wire.read();

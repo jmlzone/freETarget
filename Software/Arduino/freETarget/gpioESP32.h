@@ -2,6 +2,9 @@
  * ESP 32 version
  * Global functions
  */
+#ifndef _GPIOIO_H_
+#define _GPIPIO_H_
+
 void init_gpio(void);                         // Initialize the GPIO ports
 void arm_counters(void);                      // Make the board ready
 unsigned int is_running(void);                // Return a bit mask of running sensors 
@@ -16,6 +19,8 @@ void stop_enable_counters(void);              // this HAL shoudl be added to the
 void read_timers(void);                       // Read and return the counter registers
 void drive_paper(void);                       // Turn on the paper motor
 void clock_start(void);
+void enable_interrupt(void);                  // Turn on the face strike interrupt
+void disable_interrupt(void);                 // Turn off the face strike interrupt
 
 /*
  *  Port Definitions
@@ -67,7 +72,7 @@ void clock_start(void);
  9 RO west hi
  a run status west,east,south,north
 */
-#define FPGA_ADDR = 0x10
+#define FPGA_ADDR 0x10
 #define CONTROL 1
 #define NORTH_LOW 2
 #define STATUS 0x0a
@@ -77,3 +82,5 @@ void clock_start(void);
 #define STOP  1<<1
 #define QUIET 1<<2
 #define START 1<<3
+
+#endif
