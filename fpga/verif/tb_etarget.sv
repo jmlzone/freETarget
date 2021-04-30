@@ -3,9 +3,11 @@
  ----------------------------------------------------------------------*/
 `timescale 1ns/1ns
 module tb_etarget();
-logic clk64M,ares;
+logic clk64M,reset_n;
 logic mic_north, mic_south, mic_east, mic_west;
 logic mode;
+logic DIPA, DIPB, DIPC, DIPD;
+
 
 wire  sd0p, sd1p,sd2p,sd3p,sd4p,sd5p;
 wire  pcm0,pcm1,pcm2,pcm3,pcm4,pcm5;
@@ -32,9 +34,10 @@ initial
     mic_south = 0;
     mic_east  = 0;
     mic_west  = 0;
-    ares = 1;
+    {DIPD, DIPC, DIPB, DIPA} = 4'ha;
+    reset_n = 0;
     repeat(5) @(negedge clk64M) ;
-    ares = 0;
+    reset_n = 1;
     repeat(5) @(negedge clk64M) ;
     $display("Initial read all");
     i2c.dev_addr='h10;

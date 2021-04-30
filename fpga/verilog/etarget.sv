@@ -1,6 +1,6 @@
 module etarget(
   input        clk64M,
-  input        ares,
+  input        reset_n,
   input        scl,
   inout        sda_pin,
   input        mic_north,
@@ -73,7 +73,6 @@ SB_IO #(
   .D_IN_0 (comp1),
   .D_IN_1 ()
 );
-/*
 SB_IO #(
     .PIN_TYPE(6'b000000),
     .PULLUP(1'b0),
@@ -138,7 +137,7 @@ SB_IO #(
   .D_IN_0 (comp5),
   .D_IN_1 ()
 );
-*/
+
 /*----------------------------------------------------------------------
   register address map
  0 RO 0x10 -- we only want to shoot 10's
@@ -153,6 +152,7 @@ SB_IO #(
  9 RO west hi
  a run status west,south, east,north
  b dip d, dip c, dip b, dip a
+ c slope control [7] = slope mode [6] = negative slope [5:0] = slope
 ----------------------------------------------------------------------*/
 
 logic [7:0] version;
@@ -162,7 +162,11 @@ logic 	    clear;
 logic 	    stop;
 logic       quiet;
 logic 	    start;
- 	    
+logic [7:0] slope_control;
+logic       slope_mode;
+logic       slope_neg;
+logic [5:0] slope;
+
 
 logic [15:0] count_north;
 logic [15:0] count_south;
@@ -171,17 +175,21 @@ logic [15:0] count_west;
 logic [5:0]  addr;
 logic [7:0]  read_data;
 logic [7:0]  write_data;
-logic [7:0]  conv0, conv1, conv2, conv3, conv4, conv5;
+logic [2:0]  conv0, conv1, conv2, conv3, conv4, conv5;
+wire         det0, det1, det2, det3, det4;
 
 logic 	     read;
 logic 	     write;
 logic 	     cnt_clk;
-logic 	     run_north, run_south, run_east, run_west;
+wire 	     pin_north, pin_south, pin_east, pin_west;
+wire 	     hold_north, hold_south, hold_east, hold_west;
+logic 	     latch_north, latch_south, latch_east, latch_west;
+wire 	     run_north, run_south, run_east, run_west;
+logic	     start_north, start_south, start_east, start_west;
 
 
 //I2c slave port
 jml_i2c #(.MYI2C_ADDR('h10)) i2c(
-  .reset_n(~ares),
   .*
   );
 // clock divider
@@ -189,12 +197,21 @@ jml_i2c #(.MYI2C_ADDR('h10)) i2c(
 // 8 mhz for direction counter
 logic [2:0]  clkdiv;
 logic 	     clk8M;
-always @(posedge clk64M or posedge ares)
-  if(ares)
-    clkdiv <= 0;
+logic 	     div, div_nxt;
+
+always @(posedge clk64M or negedge reset_n)
+  if(~reset_n)
+    begin
+      clkdiv <= 0;
+      div <= 0;
+    end
   else
-    clkdiv <= clkdiv + 1'b1;
-assign clk8M = &clkdiv;
+    begin
+      clkdiv <= clkdiv + 1'b1;
+      clk8M <= div_nxt;
+      div <= div_nxt;
+    end
+assign div_nxt = &clkdiv;
 
 
 // read mux
@@ -224,117 +241,218 @@ always @*
     endcase // case (addr)
   end // always @ *
 //write data
-always @(posedge clk8M or posedge ares)
+always @(posedge clk8M or negedge reset_n)
   begin
-    if(ares)
+    if(!reset_n)
       begin
 	control <= 8'b0;
+	slope_control <= 8'b0;
       end
     else
       begin
 	if(write) begin
 	  if(addr == 6'h1) control <= write_data;
+	  if(addr == 6'hc) slope_control <= write_data;
       end
-      if(clear | stop)
-         control <= control & 8'hfc;  //auto clear low bits
-    end // else: !if(ares)
-  end // always @ (posedge clk8m or posedge ares)
+      if(clear | stop | start)
+         control <= control & 8'hf4;  //auto clear 'clear', 'stop' and 'start' bits
+      end // else: !if(!reset_n)
+  end // always @ (posedge clk8M or negedge reset_n)
+
 
 // control decode
 assign clear = control[0];
 assign stop = control[1];
 assign quiet = control[2];
 assign start = control[3];
+assign slope_mode = slope_control[7];
+assign slope_neg  = slope_control[6];
+assign slope = slope_control[5:0];
 
+// start control muxing
+always_comb
+  begin
+    if(slope_mode)
+      begin
+	start_north = det0 | start;
+	start_east  = det2 | start;
+	start_south = det1 | start;
+	start_west  = det3 | start;
+      end
+    else
+      begin
+	start_north = latch_north | start;
+	start_east  = latch_east  | start;
+	start_south = latch_south | start;
+	start_west  = latch_west  | start;
+      end // else: !if(slope_mode)
+  end // always_comb
+
+      
 // counters
  target_counter north(
    .clk(clk8M),
-   .start(mic_north|start),
+   .start(start_north),
    .run(run_north),
    .count(count_north),
    .*
   );
- target_counter south(
-   .clk(clk8M),
-   .start(mic_south|start),
-   .run(run_south),
-   .count(count_south),
-   .*
-  );
  target_counter east(
    .clk(clk8M),
-   .start(mic_east|start),
+   .start(start_east),
    .run(run_east),
    .count(count_east),
    .*
   );
+ target_counter south(
+   .clk(clk8M),
+   .start(start_south),
+   .run(run_south),
+   .count(count_south),
+   .*
+  );
  target_counter west(
    .clk(clk8M),
-   .start(mic_west|start),
+   .start(start_west),
    .run(run_west),
    .count(count_west),
    .*
   );
 
 /*----------------------------------------------------------------------
- instances of the adc's for now  no signal processing
+ instances of the slope detectors
 ----------------------------------------------------------------------*/
-/*
-  sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc0 (
-  .clk(clk64M),
-  .ares(ares),
-//  .comp(sd0p),
-  .comp(comp0),
-  .sdm(pcm0),
-  .q(conv0),
-  .wr() );
+slope_det sd0(.comp(comp0), .sdm(pcm0), .conv(conv0), .det(det0), .*);
+slope_det sd1(.comp(comp1), .sdm(pcm1), .conv(conv1), .det(det1), .*);
+slope_det sd2(.comp(comp2), .sdm(pcm2), .conv(conv2), .det(det2), .*);
+slope_det sd3(.comp(comp3), .sdm(pcm3), .conv(conv3), .det(det3), .*);
+//assign det1 = 0;
+//assign det2 = 0;
+//assign det3 = 0;
+assign det4 = 0;
+assign det5 = 0;
+//assign conv1 =0;
+//assign conv2 =0;
+//assign conv3 =0;
+assign conv4 =0;
+assign conv5 =0;
+
+/* input cells to use the latch the mic comparitors
+ IO types 
+    6'b000000 -- registered inpput
+    6'b000011 -- combinational latch closed with latch input value 
+    6'b000010 -- registered input value and held with latch input value
  */
-iadc adf0(.comp(comp0), .sdm(pcm0), .clk(clk64M), .q(conv0), .wr(), .*);
-//iadc adf1(.comp(comp1), .sdm(pcm1), .clk(clk64M), .q(conv1), .wr(), .*);
-//iadc adf2(.comp(comp2), .sdm(pcm2), .clk(clk64M), .q(conv2), .wr(), .*);
-//iadc adf3(.comp(comp3), .sdm(pcm3), .clk(clk64M), .q(conv3), .wr(), .*);
-//iadc adf4(.comp(comp4), .sdm(pcm4), .clk(clk64M), .q(conv4), .wr(), .*);
-//iadc adf5(.comp(comp5), .sdm(pcm5), .clk(clk64M), .q(conv5), .wr(), .*);
-/*
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc1 (
-  .clk(clk64M),
-  .ares(ares),
-  .comp(sd1p),
-//  .comp(comp1),
-  .sdm(pcm1),
-  .q(conv1),
-  .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc2 (
-  .clk(clk64M),
-  .ares(ares),
-  .comp(sd2p),
-//  .comp(comp2),
-  .sdm(pcm2),
-  .q(conv2),
-  .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc3 (
-  .clk(clk64M),
-  .ares(ares),
-  .comp(sd3p),
-//  .comp(comp3),
-  .sdm(pcm3),
-  .q(conv3),
-  .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc4 (
-  .clk(clk64M),
-  .ares(ares),
-  .comp(sd4p),
-//  .comp(comp4),
-  .sdm(pcm4),
-  .q(conv4),
-  .wr() );
-sd_adc #(.WIDTH(8), .ACC_WIDTH(10), .LPF_DEPTH(3)) adc5 (
-  .clk(clk64M),
-  .ares(ares),
-  .comp(sd5p),
-//  .comp(comp5),
-  .sdm(pcm5),
-  .q(conv5),
-  .wr() );
-*/
+assign hold_north = latch_north & ~run_north;
+always @(posedge clk64M or negedge reset_n)
+  if(!reset_n)
+    begin
+      latch_north <= 1'b0;
+      latch_east  <= 1'b0;
+      latch_south <= 1'b0;
+      latch_west  <= 1'b0;
+    end
+  else
+    begin
+      if(run_north)
+	latch_north <= 1'b0;
+      else if(pin_north)
+	latch_north <= 1'b1;
+      else
+	latch_north <= latch_north; // hold
+
+      if(run_east)
+	latch_east <= 1'b0;
+      else if(pin_east)
+	latch_east <= 1'b1;
+      else
+	latch_east <= latch_east; // hold
+
+      if(run_south)
+	latch_south <= 1'b0;
+      else if(pin_south)
+	latch_south <= 1'b1;
+      else
+	latch_south <= latch_south; // hold
+
+      if(run_west)
+	latch_west <= 1'b0;
+      else if(pin_west)
+	latch_west <= 1'b1;
+      else
+	latch_west <= latch_west; // hold
+    end // else: !if(!reset_n)
+
+
+SB_IO #(
+    .PIN_TYPE(6'b000000), // registered
+    .PULLUP(1'b0),
+    .IO_STANDARD("SB_LVCMOS")
+) north_in (
+  .PACKAGE_PIN(mic_north),
+  .LATCH_INPUT_VALUE (),
+  .CLOCK_ENABLE ( ),
+  .INPUT_CLK (clk64M),
+  .OUTPUT_CLK ( ),
+  .OUTPUT_ENABLE ( ),
+  .D_OUT_0 ( ),
+  .D_OUT_1 ( ),
+  .D_IN_0 (pin_north),
+  .D_IN_1 ()
+);
+
+assign hold_east = latch_east & ~run_east;
+SB_IO #(
+    .PIN_TYPE(6'b000000),
+    .PULLUP(1'b0),
+    .IO_STANDARD("SB_LVCMOS")
+) east_in (
+  .PACKAGE_PIN(mic_east),
+  .LATCH_INPUT_VALUE (),
+  .CLOCK_ENABLE ( ),
+  .INPUT_CLK (clk64M),
+  .OUTPUT_CLK ( ),
+  .OUTPUT_ENABLE ( ),
+  .D_OUT_0 ( ),
+  .D_OUT_1 ( ),
+  .D_IN_0 (pin_east),
+  .D_IN_1 ()
+);
+
+assign hold_south = latch_south & ~run_south;
+SB_IO #(
+    .PIN_TYPE(6'b000000),
+    .PULLUP(1'b0),
+    .IO_STANDARD("SB_LVCMOS")
+) south_in (
+  .PACKAGE_PIN(mic_south),
+  .LATCH_INPUT_VALUE (),
+  .CLOCK_ENABLE ( ),
+  .INPUT_CLK (clk64M),
+  .OUTPUT_CLK ( ),
+  .OUTPUT_ENABLE ( ),
+  .D_OUT_0 ( ),
+  .D_OUT_1 ( ),
+  .D_IN_0 (pin_south),
+  .D_IN_1 ()
+);
+
+assign hold_west = latch_west & ~run_west;
+SB_IO #(
+    .PIN_TYPE(6'b000000),
+    .PULLUP(1'b0),
+    .IO_STANDARD("SB_LVCMOS")
+) west_in (
+  .PACKAGE_PIN(mic_west),
+  .LATCH_INPUT_VALUE (),
+  .CLOCK_ENABLE ( ),
+  .INPUT_CLK (clk64M),
+  .OUTPUT_CLK ( ),
+  .OUTPUT_ENABLE ( ),
+  .D_OUT_0 ( ),
+  .D_OUT_1 ( ),
+  .D_IN_0 (pin_west),
+  .D_IN_1 ()
+);
+
 endmodule // etarget

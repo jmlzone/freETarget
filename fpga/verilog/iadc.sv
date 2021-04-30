@@ -15,7 +15,7 @@ the factor (1-exp(-T/RC)) is a constant calculate as 2 (0x02) so its a simple sh
 
 module iadc (
   input clk,
-  input ares,
+  input reset_n,
   input comp,
   output logic sdm,
   output logic [7:0] q,
@@ -34,8 +34,8 @@ logic [7:0]    srLPF1;
 logic [7:0]    srLPF2;
 logic [7:0]    srLPF3;
 int 	       i ; // loopvar unrolled
-always_ff @(posedge clk or posedge ares)
-  if(ares)
+always_ff @(posedge clk or negedge reset_n)
+  if(~reset_n)
     begin
       sdm    <= 0;
       count  <= 0;
@@ -84,6 +84,6 @@ always_ff @(posedge clk or posedge ares)
 	  srLPF3 <= srLPF2;
 	  q <= (10'(srLPF0 +  srLPF1 +  srLPF2 + srLPF3)) >>2;
 	end
-    end // else: !if(ares)
+    end // else: !if(~reset_n)
 endmodule // iadc
 

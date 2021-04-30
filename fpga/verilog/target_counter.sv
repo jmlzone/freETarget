@@ -1,6 +1,6 @@
 module target_counter(
   input 	      clk,
-  input 	      ares,
+  input 	      reset_n,
   input 	      start,
   input 	      stop,
   input 	      clear,
@@ -8,24 +8,27 @@ module target_counter(
   output logic run,
   output logic [15:0] count
   );
-logic clr;
-assign clr = ares | clear;
-
-// sr flop for mike trigger (converted to d)
- always @(posedge clk or posedge clr)
-   if(clr)
-     run <= 1'b0;
-   else 
-     if (start) // active low
-       run <= 1'b1;
-     else if(stop) // active low
-       run <= 1'b0;
-       
-always @(posedge clk or posedge clr)
-  if(clr)
-    count <= 16'b0;
+always @(posedge clk or negedge reset_n)
+  if(!reset_n) // hardware reset
+    begin
+      run <= 1'b0;
+      count <= 16'b0;
+    end
   else
+  if(clear) // synchronous clear from i2c reg
+    begin
+      run <= 1'b0;
+      count <= 16'b0;
+    end
+  else
+    begin
+     if (start)
+       run <= 1'b1;
+     else if(stop)
+       run <= 1'b0;
     if(~quiet & run & count < 16'hffff)
       count <= count +1;
+    end // else: !if(clear)
+
 endmodule // target_counter
 

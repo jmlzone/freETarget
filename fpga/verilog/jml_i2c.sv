@@ -204,16 +204,6 @@ always @*
 
 ----------------------------------------------------------------------*/
 // bit_cnt is on shift_clk (scl)
-always @(negedge scl or negedge reset_n)
-  if(!reset_n)
-    begin
-      bit_cnt     <=  3'b0;
-    end
-  else 
-    begin
-      bit_cnt     <=  bit_cnt_nxt;
-    end
-
 // sample (capture) clock
 always @(negedge scl or negedge reset_n)
   if(!reset_n)
@@ -223,6 +213,7 @@ always @(negedge scl or negedge reset_n)
       srdata      <=  8'b0;
       byte_done   <=  1'b0;
       write       <=  1'b0;
+      bit_cnt     <=  3'b0;
       first_write_done <=  1'b0;
    end
   else 
@@ -232,6 +223,7 @@ always @(negedge scl or negedge reset_n)
       srdata      <=  srdata_nxt;
       byte_done   <=  byte_done_nxt;
       write       <=  write_nxt;
+      bit_cnt     <=  bit_cnt_nxt;
       first_write_done <=  first_write_done_nxt;
     end
 
@@ -311,6 +303,7 @@ always @*
 
   latch is open when bit cnt is zero 
  ----------------------------------------------------------------------*/
+/*
 logic read_latch_open;
 always @*
   begin
@@ -322,7 +315,12 @@ always @*
 always @(read_latch_open or read_data)
   if(read_latch_open)
     read_data_rev <=  read_data;
-
+*/
+always @(posedge scl or negedge reset_n)
+  if(!reset_n)
+    read_data_rev <= 8'h00;
+  else
+    if(bit_cnt==0) read_data_rev <= read_data;
 
 endmodule // jml_i2c
 

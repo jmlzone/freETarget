@@ -5,5 +5,5 @@ i2c_master.sv
 tb_etarget.sv
 ../verilog/etarget.sv
 ../verilog/jml_i2c.sv
-../verilog/sd_adc.sv
+../verilog/slope_det.sv
 ../verilog/target_counter.sv

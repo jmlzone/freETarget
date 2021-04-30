@@ -7,10 +7,10 @@ set_io mic_east 26
 set_io mic_south 28
 set_io mic_west 31
 set_io clk64M 35
-set_io -pullup yes DIPA 36
-set_io -pullup yes DIPB 43
-set_io -pullup yes DIPC 38
-set_io -pullup yes DIPD 42
+set_io -pullup yes -pullup_resistor 10K DIPA 36
+set_io -pullup yes -pullup_resistor 10K DIPB 43
+set_io -pullup yes -pullup_resistor 10K DIPC 38
+set_io -pullup yes -pullup_resistor 10K DIPD 42
 
 #section B
 set_io pcm2 6
@@ -21,7 +21,7 @@ set_io sd3p 12
 #set_io sd3m 21
 set_io sd4p 13
 #set_io sd4m 20
-set_io ares 14
+set_io reset_n 14
 set_io scl 15
 set_io sda_pin 16
 set_io mode 17
