@@ -38,7 +38,7 @@ void set_LED_PWM(int percent);      // Set the PWM duty cycle
 #define MAX_ANALOG  0x3ff       // Largest analog input
 
 #ifdef ESP32
-  #define TO_VOLTS(x) ( ((double)(x) * 3.3) / 1024.0 )
+  #define TO_VOLTS(x) ( ((double)(x) * 3.3) / 4096.0 )
 #else
   #define TO_VOLTS(x) ( ((double)(x) * 5.0) / 1024.0 )
 #endif

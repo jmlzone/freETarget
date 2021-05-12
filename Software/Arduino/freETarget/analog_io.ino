@@ -55,7 +55,8 @@ void set_LED_PWM(int percent)
   
 /*
  * All done, begin the program
- */
+
+*/
   return;
 }
 
@@ -87,7 +88,7 @@ unsigned int read_reference(void)
  *  Read the analog value from the resistor divider, keep only
  *  the top 4 bits, and return the version number.
  *  
- *  The analog input is a number 0-1024 
+ *  The analog input is a number 0-1024(arduino) 0-4095(ESP32)
  *--------------------------------------------------------------*/
 //                                 0      1  2  3     4     5  6      7    8  9   A   B   C   D   E   F
 #ifdef ESP32

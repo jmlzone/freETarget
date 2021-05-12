@@ -7,3 +7,4 @@ tb_etarget.sv
 ../verilog/jml_i2c.sv
 ../verilog/slope_det.sv
 ../verilog/target_counter.sv
+../verilog/data_recorder.sv

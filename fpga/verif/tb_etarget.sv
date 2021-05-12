@@ -49,6 +49,12 @@ initial
     i2c.write(1);
     i2c.data[0] = 0;  // clear[0] and stop[1]
     i2c.write(1);
+    i2c.data[0] = 8'b01000100;  // rec_sel
+    i2c.data[1] = 8'b10111111;  // rec_ctl
+    i2c.data[2] = 8'h20;  // trigger_depth
+    i2c.reg_addr = 8'h0d; //control
+    i2c.write(3); // burst write the controls
+
     #1us;
     mic_north = 1;
     #1us;
@@ -90,6 +96,9 @@ initial
     i2c.reg_addr = 'h10;
     i2c.read(6);
     i2c.display_read(6);
+    i2c.reg_addr = 'h30;
+    i2c.read(1023);
+    i2c.display_read(1023);
     #100;
     
     $finish(2);

@@ -18,7 +18,7 @@ module slope_det (
   input div,    // this fires when the 8MHz is divided down from the 64MHz for the know phase
   input comp,   // input from the comparitor in the LVDS pin used as the ADC
   input slope_neg, // for slop detection positive or negative slope
-  input [5:0] slope, // delta slope looked for (at 8mhz (0.125us) for delta t)
+  input [5:0] slope, // delta slope looked for (at 8mhz (0.125us) for delta t = 4*0.125uS or 0.5uS)
   output logic sdm,  // The sdm bit back to the analog integrator
   output logic det,  // slope detected (at 8mhz rate)
   output logic [2:0] conv // the 3 bit adc value at 8MHz.

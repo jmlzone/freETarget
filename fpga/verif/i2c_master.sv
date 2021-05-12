@@ -15,7 +15,7 @@ bufif0 sda_buf (sda,1'b0,drv_sda);
 /* transfer buffer and config */
 logic [6:0] dev_addr;
 logic [7:0] reg_addr;
-logic [7:0] data[0:31]; // read or write data for bursts
+logic [7:0] data[0:1023]; // read or write data for bursts
 // timing paramaters
 localparam DS = 100 ;
 localparam SP = 100 ;

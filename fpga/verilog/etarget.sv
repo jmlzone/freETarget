@@ -166,7 +166,9 @@ logic [7:0] slope_control;
 logic       slope_mode;
 logic       slope_neg;
 logic [5:0] slope;
-
+logic [7:0] rec_sel;
+logic [7:0] rec_ctl;
+logic [7:0] trigger_depth;
 
 logic [15:0] count_north;
 logic [15:0] count_south;
@@ -186,6 +188,9 @@ wire 	     hold_north, hold_south, hold_east, hold_west;
 logic 	     latch_north, latch_south, latch_east, latch_west;
 wire 	     run_north, run_south, run_east, run_west;
 logic	     start_north, start_south, start_east, start_west;
+logic 	     rd_pop;
+logic 	     trace_rd_reset;
+logic [7:0]  trace_data;
 
 
 //I2c slave port
@@ -217,7 +222,7 @@ assign div_nxt = &clkdiv;
 // read mux
 always @*
   begin
-    case (addr)
+    casez (addr)
       6'h0 : read_data = version;
       6'h1 : read_data = control;
       6'h2 : read_data = count_north[7:0];
@@ -230,13 +235,17 @@ always @*
       6'h9 : read_data = count_west[15:8];
       6'ha : read_data = {4'h0, run_west,run_south,run_east,run_north};
       6'hb : read_data = {4'h0, DIPA,DIPB,DIPC,DIPD};
+      6'hc : read_data = slope_control;
+      6'hd : read_data = rec_sel;
+      6'he : read_data = rec_ctl;
+      6'hf : read_data = trigger_depth;      
       6'h10: read_data = conv0;
       6'h11: read_data = conv1;
       6'h12: read_data = conv2;
       6'h13: read_data = conv3;
       6'h14: read_data = conv4;
       6'h15: read_data = conv5;
-      
+      6'h3?: read_data = trace_data;
       default: read_data = 8'h00;
     endcase // case (addr)
   end // always @ *
@@ -247,12 +256,18 @@ always @(posedge clk8M or negedge reset_n)
       begin
 	control <= 8'b0;
 	slope_control <= 8'b0;
+	rec_sel <= 8'b0;
+	rec_ctl <= 8'b0;
+	trigger_depth <= 8'b0;
       end
     else
       begin
 	if(write) begin
 	  if(addr == 6'h1) control <= write_data;
 	  if(addr == 6'hc) slope_control <= write_data;
+	  if(addr == 6'hd) rec_sel <= write_data;
+	  if(addr == 6'he) rec_ctl <= write_data;
+	  if(addr == 6'hf) trigger_depth <= write_data;
       end
       if(clear | stop | start)
          control <= control & 8'hf4;  //auto clear 'clear', 'stop' and 'start' bits
@@ -326,16 +341,12 @@ slope_det sd0(.comp(comp0), .sdm(pcm0), .conv(conv0), .det(det0), .*);
 slope_det sd1(.comp(comp1), .sdm(pcm1), .conv(conv1), .det(det1), .*);
 slope_det sd2(.comp(comp2), .sdm(pcm2), .conv(conv2), .det(det2), .*);
 slope_det sd3(.comp(comp3), .sdm(pcm3), .conv(conv3), .det(det3), .*);
-//assign det1 = 0;
-//assign det2 = 0;
-//assign det3 = 0;
-assign det4 = 0;
-assign det5 = 0;
-//assign conv1 =0;
-//assign conv2 =0;
-//assign conv3 =0;
-assign conv4 =0;
-assign conv5 =0;
+slope_det sd4(.comp(comp4), .sdm(pcm4), .conv(conv4), .det(det4), .*);
+slope_det sd5(.comp(comp5), .sdm(pcm5), .conv(conv5), .det(det5), .*);
+data_recorder data_recorder(
+ .det({det5,det4,det3,det2,det1,det0}),
+ .*
+  );
 
 /* input cells to use the latch the mic comparitors
  IO types 

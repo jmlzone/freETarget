@@ -1,5 +1,5 @@
 read_verilog -lib /usr/local/share/yosys/ice40/cells_sim.v
-read_verilog -sv ../verilog/etarget.sv  ../verilog/jml_i2c.sv  ../verilog/target_counter.sv ../verilog/slope_det.sv
+read_verilog -sv ../verilog/etarget.sv  ../verilog/jml_i2c.sv  ../verilog/target_counter.sv ../verilog/slope_det.sv ../verilog/data_recorder.sv
 hierarchy -check -top etarget
 #proc; opt; memory; opt; techmap; opt
 #synth_ice40 -device lp -top etarget -json  etarget.json

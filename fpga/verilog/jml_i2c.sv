@@ -14,13 +14,15 @@ module jml_i2c  #(
 // interface to pins
   input 	     scl, //i2c clock
   input 	     sda,
-  output logic	     sda_drv_lo,
+  output logic 	     sda_drv_lo,
 //serial bridge signals
   output logic [5:0] addr,
   output logic 	     read,
   output logic 	     write,
   output logic [7:0] write_data,
-  input [7:0] 	     read_data
+  input [7:0] 	     read_data,
+  output logic 	     rd_pop,
+  output logic 	     trace_rd_reset
 );
 /*----------------------------------------------------------------------
   Declarations
@@ -259,17 +261,30 @@ always @*
 
 //address load cases
     if( ((i2c_state==I2C_LOGIC_ADDR) && byte_done) )
-      addr_nxt = srdata[5:0];
+	addr_nxt = srdata[5:0];
     else
 //address increment cases
-      if(
+      if((
          ((i2c_state==I2C_READ) && got_ack_nxt && bit_cnt7 && !i2cS) //increment only on ack'd reads
-        || (write_nxt && first_write_done)
+        || (write_nxt && first_write_done))
+	&& (addr[5:4] != 2'b11) // in this i2c addresses 3* will hold for reading the rams
      )
         addr_nxt = addr + 1'b1;
       else
         addr_nxt = addr;
 
+    if(((i2c_state==I2C_LOGIC_ADDR) && byte_done) && (srdata[5:4] == 2'b11))
+      trace_rd_reset = 1'b1;
+    else
+      trace_rd_reset = 1'b0;
+
+    if((((i2c_state==I2C_READ) && got_ack_nxt && bit_cnt7 && !i2cS) //increment only on ack'd reads
+        || (write_nxt && first_write_done))
+	&& (addr[5:4] == 2'b11))
+      rd_pop  = 1'b1;
+    else
+      rd_pop  = 1'b0;
+      
 // read and write are asyncronous here
     if( ((i2c_state==I2C_READ) || (i2c_nxt==I2C_READ) || (i2c_state==I2C_READ_ACK)) && !i2cP)
        i2c_read = 1'b1;
