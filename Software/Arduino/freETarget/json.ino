@@ -59,7 +59,7 @@ typedef struct  {
 } json_message;
 
   
-static json_message JSON[] = {
+const json_message JSON[] = {
 //    token                 value stored in RAM     double stored in RAM         type     service fcn()     NONVOL location
   {"\"ANGLE\":",          &json_sensor_angle,                0,                IS_INT16,  0,                NONVOL_SENSOR_ANGLE},    // Locate the sensor angles
   {"\"CAL\":",            0,                                 0,                IS_VOID,   &set_trip_point,                  0  },    // Enter calibration mode
@@ -76,6 +76,7 @@ static json_message JSON[] = {
   {"\"TEST\":",           &json_test,                        0,                IS_INT16,  &show_test,       NONVOL_TEST_MODE   },    // Execute a self test
   {"\"TRACE\":",          &temp,                             0,                IS_INT16,  &set_trace,                       0  },    // Enter / exit diagnostic trace
   {"\"TRGT_1_RINGx10\":", &json_1_ring_x10,                  0,                IS_INT16,  0,                NONVOL_1_RINGx10   },    // Enter the 1 ring diamater
+  {"\"VERSION\":",        0,                                 0,                IS_INT16,  &POST_0,                          0  },    // Return the version string
   {"\"NORTH_X\":",        &json_north_x,                     0,                IS_INT16,  0,                NONVOL_NORTH_X     },    //
   {"\"NORTH_Y\":",        &json_north_y,                     0,                IS_INT16,  0,                NONVOL_NORTH_Y     },    //
   {"\"EAST_X\":",         &json_east_x,                      0,                IS_INT16,  0,                NONVOL_EAST_X      },    //
@@ -84,7 +85,6 @@ static json_message JSON[] = {
   {"\"SOUTH_Y\":",        &json_south_y,                     0,                IS_INT16,  0,                NONVOL_SOUTH_Y     },    //
   {"\"WEST_X\":",         &json_west_x,                      0,                IS_INT16,  0,                NONVOL_WEST_X      },    //
   {"\"WEST_Y\":",         &json_west_y,                      0,                IS_INT16,  0,                NONVOL_WEST_Y      },    //
-
   { 0, 0, 0, 0, 0, 0}
 };
 
@@ -130,13 +130,13 @@ bool    return_value;
 /*
  * See if anything is waiting and if so, add it in
  */
-  while (Serial.available() != 0)
+  while ( AVAILABLE != 0)
   {
     return_value = true;
     
-    ch = Serial.read();
+    GET(ch);
 #if ( JSON_DEBUG == true )
-    Serial.print(ch);
+    PRINT(ch);
 #endif
 
 /*
@@ -204,12 +204,13 @@ bool    return_value;
           break;
             
           case IS_INT16:                                      // Convert an integer
-            x = atoi(&input_JSON[i+k-1]);
+            x = atoi(&input_JSON[i+k]);
             *JSON[j].value = x;                               // Save the value
             if ( JSON[j].non_vol != 0 )
             {
               EEPROM.put(JSON[j].non_vol, x);                 // Store into NON-VOL
             }
+            
             break;
   
           case IS_FLOAT:                                      // Convert a floating point number
@@ -222,6 +223,7 @@ bool    return_value;
             }
             break;
         }
+
         if ( JSON[j].f != 0 )                                 // Call the handler if it is available
         {
           JSON[j].f(x);
@@ -275,12 +277,14 @@ int instr(char* s1, char* s2)
 /*
  * Reached the end of the comparison string. Check that we arrived at a NULL
  */
-  if ( *s2 == 0 )
+  if ( *s2 == 0 )       // Both strings are the same
   {
     return i;
   }
-  return -1;
+  
+  return -1;                            // The strings are different
 }
+
 /*-----------------------------------------------------
  * 
  * function: show_echo
@@ -327,11 +331,12 @@ void show_echo(int v)
 
   EEPROM.get(NONVOL_INIT, i);
   Serial.print("\r\n");
-  Serial.print("\"INIT\":");        Serial.print(i);                Serial.print(", \r\n");
-  Serial.print("\"IS_TRACE\":");    Serial.print(is_trace);         Serial.print(", \r\n");
-  Serial.print("\"TEMPERATURE\":"); Serial.print(temperature_C());  Serial.print(", \r\n");
+  Serial.print("\"INIT\":");        Serial.print(i);                      Serial.print(", \r\n");
+  Serial.print("\"IS_TRACE\":");    Serial.print(is_trace);               Serial.print(", \r\n");
+  Serial.print("\"TEMPERATURE\":"); Serial.print(temperature_C());        Serial.print(", \r\n");
   Serial.print("\"V_REF\":");       Serial.print(TO_VOLTS(analogRead(V_REFERENCE))); Serial.print(", \r\n");
-  Serial.print("\"VERSION\":");     Serial.print(SOFTWARE_VERSION); Serial.print(", \r\n");
+  Serial.print("\"DIP\": 0x");      Serial.print(0x0F & read_DIP(), HEX); Serial.print("\r\n");
+  Serial.print("\"VERSION\":");     Serial.print(SOFTWARE_VERSION);       Serial.print(", \r\n");
   Serial.print("\"BRD_REV\":");     Serial.print(revision()); 
   Serial.print("\r\n}\r\n");
   

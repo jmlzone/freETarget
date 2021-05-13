@@ -14,13 +14,15 @@
 #ifdef ESP32
 #define SOFTWARE_VERSION "\"4.00 preliminary\""
 #else
-#define SOFTWARE_VERSION "\"3.00.4 April 25, 2021\""
+#define SOFTWARE_VERSION "\"3.01.1 May 9, 2021\""
 #endif
-#define REV_210    21
-#define REV_220    22
-#define REV_290    29
-#define REV_300   300
-#define REV_400   400
+#define REV_100    100
+#define REV_210    210
+#define REV_220    220
+#define REV_290    290
+#define REV_300    300
+#define REV_400    400
+
 #define INIT_DONE       0xabcd        // Initialization complete signature
 
 /*
@@ -38,12 +40,24 @@
 #define AUX_SERIAL         Serial3    // Auxilary Connector
 #define DISPLAY_SERIAL     Serial2    // Serial port for slave display
 #endif
-#define PRINT(x) {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);}
+
+#define PRINT(x)  {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);}
+#define GET(ch)   {if ( Serial.available() )              ch = Serial.read();         \
+                   else if ( AUX_SERIAL.available() )     ch = AUX_SERIAL.read();     \
+                   else if ( DISPLAY_SERIAL.available() ) ch = DISPLAY_SERIAL.read(); \
+                   else                                   ch = 0;}
+                   
+#define AVAILABLE ( Serial.available() + AUX_SERIAL.available() + DISPLAY_SERIAL.available() )
+
+#define PORT_SERIAL   1
+#define PORT_AUX      2
+#define PORT_DISPLAY  4
+#define PORT_ALL      (PORT_SERIAL + PORT_AUX + PORT_DISPLAY)
 
 /*
  * Oscillator Features
  */
-#define OSCILLATOR_MHZ   8.0    // 8000 cycles in 1 ms
+#define OSCILLATOR_MHZ   8.0                          // 8000 cycles in 1 ms
 #define CLOCK_PERIOD  (1.0/OSCILLATOR_MHZ)            // Seconds per bit
 #define ONE_SECOND      1000                          // 1000 ms delay
 #define SHOT_TIME     ((int)(json_sensor_dia / 0.33)) // Worst case delay Sensor diameter / speed of sound)

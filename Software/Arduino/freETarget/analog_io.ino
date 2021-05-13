@@ -42,21 +42,39 @@ void init_analog_io(void)
  *
  * json_LED_PWM is a number 0-100 %  It must be scaled 0-255
  * 
+ * The function ramps the level between the current and desired
+ * 
  *--------------------------------------------------------------*/
-static unsigned int led_pwm = 0;
+static unsigned int old_LED_percent = 0;
 
-void set_LED_PWM(int percent)
+void set_LED_PWM
+  (
+  int new_LED_percent                            // Desired LED level (0-100%)
+  )
 {
-  if ( percent != led_pwm )
+  while ( new_LED_percent != old_LED_percent )  // Change in the brightness level?
   {
-    led_pwm = percent * 256 / 100;
-    analogWrite(LED_PWM, led_pwm);  // Prime the PWM
+    analogWrite(LED_PWM, old_LED_percent * 256 / 100);  // Write the value out
+    
+    if ( new_LED_percent < old_LED_percent )
+    {
+      old_LED_percent--;                        // Ramp the value down
+    }
+    else
+    {
+      old_LED_percent++;                        // Ramp the value up
+    }
+
+    delay(ONE_SECOND/50);                       // Worst case, take 2 seconds to get there
   }
   
 /*
  * All done, begin the program
-
-*/
+ */
+  if ( new_LED_percent == 0 )
+  {
+    digitalWrite(LED_PWM, 0);
+  }
   return;
 }
 
@@ -89,6 +107,11 @@ unsigned int read_reference(void)
  *  the top 4 bits, and return the version number.
  *  
  *  The analog input is a number 0-1024(arduino) 0-4095(ESP32)
+ *  which is banded and used to look up a table of revision numbers.
+ *  
+ *  To accomodate unknown hardware builds, if the revision is
+ *  undefined (< 100) then the last 'good' revision is returned
+ *  
  *--------------------------------------------------------------*/
 //                                 0      1  2  3     4     5  6      7    8  9   A   B   C   D   E   F
 #ifdef ESP32
@@ -98,7 +121,25 @@ unsigned int read_reference(void)
 #endif
 unsigned int revision(void)
 {
-  return version[analogRead(ANALOG_VERSION) * 16 / 1024];
+  unsigned int revision;
+
+/* 
+ *  Read the resistors and determine the board revision
+ */
+  revision =  version[analogRead(ANALOG_VERSION) * 16 / 1024];
+
+/*
+ * Fake the revision if it is undefined
+ */
+  if ( revision <= REV_100 )
+  {
+    revision = REV_300;
+  }
+
+/*
+ * Nothing more to do, return the board revision
+ */
+  return revision;
 }
 
 /*----------------------------------------------------------------
@@ -160,11 +201,8 @@ void cal_analog(void)
     {
      steps = 0;
     }
-  set_LED(LED_S, (bool) !((steps & 1) == 0));
-  set_LED(LED_X, (bool) !((steps & 2) == 0));
-  set_LED(LED_Y, (bool) !((steps & 4) == 0));
+  set_LED(steps & 4, steps & 2, steps & 1);
 
-  
 /*
  * All done, return
  */

@@ -13,7 +13,7 @@ typedef struct {
   byte value;
 } GPIO_INIT;
 
-GPIO_INIT init_table[] = {
+const GPIO init_table[] = {
   {D0,          INPUT_PULLUP, 0 },
   {D1,          INPUT_PULLUP, 0 },
   {D2,          INPUT_PULLUP, 0 },
@@ -47,11 +47,11 @@ GPIO_INIT init_table[] = {
   {DIP_C,       INPUT_PULLUP, 0},
   {DIP_D,       INPUT_PULLUP, 0},  
 
-  {LED_S,       OUTPUT, 1},
+  {LED_RDY,     OUTPUT, 1},
   {LED_X,       OUTPUT, 1},
   {LED_Y,       OUTPUT, 1},
 
-  {LED_PWM,     OUTPUT, 1},
+  {LED_PWM,     OUTPUT, 0},
   {RTS_U,       OUTPUT, 1},
   {CTS_U,       INPUT_PULLUP, 0},
 
@@ -93,13 +93,15 @@ void init_gpio(void)
     i++;
   }
 
+  disable_interrupt();
+  set_LED_PWM(0);             // Turn off the illumination for now
+  
 /*
  * Special case of the witness paper
  */
   pinMode(PAPER, OUTPUT);
   if ( revision() < REV_300 )
   { 
-
     digitalWrite(PAPER, PAPER_OFF);
   }
   else 
@@ -282,6 +284,17 @@ void stop_counters(void)
   return;
   }
 
+/*
+ *  Trip the counters for a self test
+ */
+void trip_counters(void)
+{
+  digitalWrite(CLOCK_START, 0);
+  digitalWrite(CLOCK_START, 1);     // Trigger the clocks from the D input of the FF
+  digitalWrite(CLOCK_START, 0);
+
+  return;
+}
 /*-----------------------------------------------------
  * 
  * function: enable_interrupt
@@ -350,15 +363,44 @@ unsigned int read_DIP(void)
   return return_value;
 }  
 
-/*
- * Turn a LED on or off
- */
-void set_LED(unsigned int led, bool state)
+/*-----------------------------------------------------
+ * 
+ * function: set_LED
+ * 
+ * brief:    Set the state of all the LEDs
+ * 
+ * return:   None
+ * 
+ *-----------------------------------------------------
+ *
+ * The state of the LEDs can be turned on or off 
+ * 
+ * -1 Leave alone
+ *  0 Turn LED off
+ *  1 Turn LED on
+ * 
+ *-----------------------------------------------------*/
+void set_LED
+  (
+    int state_RDY,        // State of the Rdy LED
+    int state_X,          // State of the X LED
+    int state_Y           // State of the Y LED
+    )
+{
+  if ( state_RDY >= 0 )
   {
-  if ( state == 0 )
-    digitalWrite(led, 1);     // ON = LOW
-  else
-    digitalWrite(led, 0);
+    digitalWrite(LED_RDY, state_RDY == 0 );
+  }
+  
+  if ( state_X >= 0 )
+  {
+    digitalWrite(LED_X, state_X == 0);
+  }
+
+  if ( state_Y >= 0 )
+  {
+    digitalWrite(LED_Y, state_Y == 0);
+  }
     
   return;  
   }
@@ -421,7 +463,7 @@ void read_timers(void)
     
    if ( revision() < REV_300 )
    {
-     digitalWrite(PAPER, PAPER_ON);          // Advance the motor drive time
+     digitalWrite(PAPER, PAPER_ON);               // Advance the motor drive time
    }
    else
    {
@@ -431,15 +473,13 @@ void read_timers(void)
    for (i=0; i != json_paper_time; i++ )
    {
      j = 7 * (1.0 - ((float)i / float(json_paper_time)));
-     set_LED(LED_S, j & 1);                // Show the paper advancing
-     set_LED(LED_X, j & 2);                // 
-     set_LED(LED_Y, j & 4);                // 
-     delay(PAPER_STEP);                    // in 100ms increments
+     set_LED(j & 4, j & 2, j & 1);                // Show the count going downb
+     delay(PAPER_STEP);                           // in 100ms increments
     }
     
    if ( revision() < REV_300 )
    {
-     digitalWrite(PAPER, PAPER_OFF);          // Advance the motor drive time
+     digitalWrite(PAPER, PAPER_OFF);              // Advance the motor drive time
    }
    else
    {
@@ -485,4 +525,19 @@ void read_timers(void)
 
   return;
  }
- 
+
+ /*
+ * Common function to indicate a fault
+ */
+void blink_fault
+  (                                        
+  unsigned int fault_code                 // Fault code to blink
+  )
+{
+  set_LED(fault_code & 4, fault_code & 2, fault_code & 1);  // Blink the LEDs to show an error
+  delay(ONE_SECOND/4);
+  fault_code = ~fault_code;
+  set_LED(fault_code & 4, fault_code & 2, fault_code & 1);                    // Blink the LEDs to show an error
+  delay(ONE_SECOND/4);
+  return;
+}
