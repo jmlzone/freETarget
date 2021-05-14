@@ -12,8 +12,8 @@ typedef struct {
   byte in_or_out;
   byte value;
 } GPIO_INIT;
-
-const GPIO init_table[] = {
+#ifndef ESP32
+const GPIO_INIT init_table[] = {
   {D0,          INPUT_PULLUP, 0 },
   {D1,          INPUT_PULLUP, 0 },
   {D2,          INPUT_PULLUP, 0 },
@@ -62,6 +62,21 @@ const GPIO init_table[] = {
   
   {EOF, EOF, EOF} };
 
+#else
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+GPIO_INIT init_table[] = {
+  {LED_PWM,     OUTPUT, 1},
+  {RTS_U,       OUTPUT, 1},
+  {CTS_U,       INPUT_PULLUP, 0},
+
+  {FACE_SENSOR, INPUT_PULLUP, 0},
+  
+  {SPARE_1,     OUTPUT, 1},               // 18-Paper drive active low
+  {SPARE_2,     INPUT_PULLUP, 0},
+  
+  {EOF, EOF, EOF} };
+#endif
 void face_ISR(void);
 
 /*-----------------------------------------------------
@@ -92,7 +107,10 @@ void init_gpio(void)
     }
     i++;
   }
-
+#ifdef ESP32
+  strip.begin();
+  strip.clear();
+#endif
   disable_interrupt();
   set_LED_PWM(0);             // Turn off the illumination for now
   
@@ -114,7 +132,7 @@ void init_gpio(void)
  */  
   return;
 }
-
+#ifndef ESP32
 /*-----------------------------------------------------
  * 
  * function: read_port
@@ -201,7 +219,53 @@ unsigned int read_counter
  */
   return (return_value_HI << 8) + return_value_LO;
 }
+#else
 
+/*-----------------------------------------------------
+   i2c wrapper functions
+   (because the 'wire library' is a bit weak)
+ *-----------------------------------------------------*/
+ uint8_t i2c_buf[16]; // A static buffer used for I2C write and read
+ void i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val){
+  Wire.beginTransmission(dev_addr);
+  Wire.write(reg_addr);
+  Wire.write(val);
+  Wire.endTransmission();
+}
+ void i2c_write_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n){
+   int i;
+   Wire.beginTransmission(dev_addr);
+   Wire.write(reg_addr);
+   for(i=0; i<n;i++) {
+     Wire.write(i2c_buf[i]);
+   }
+   Wire.endTransmission();
+ }
+ uint8_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr) {
+   Wire.beginTransmission(dev_addr);
+   Wire.write(reg_addr);
+   Wire.endTransmission();
+   Wire.requestFrom(dev_addr,1);
+   return(Wire.read());
+ }
+ void i2c_read_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n) {
+   Wire.beginTransmission(dev_addr);
+   Wire.write(reg_addr);
+   Wire.endTransmission();
+   Wire.requestFrom(dev_addr,n);
+   for(i=0; i<n;i++) {
+     i2c_buf[i] = Wire.read();
+   }
+ }
+
+void stop_enable_counters(void)
+  {
+    i2c_write_reg(FPGA_ADDR,CONTROL,STOP);
+    //i2c_write_reg(FPGA_ADDR,CONTROL, 0); not needed this bit self clears
+  return;
+  }
+
+#endif
 /*-----------------------------------------------------
  * 
  * function: is_running
@@ -220,6 +284,7 @@ unsigned int read_counter
 unsigned int is_running (void)
 {
   unsigned int i;
+#ifndef ESP32
   i = 0;
   
   if ( digitalRead(RUN_NORTH) == 1 )
@@ -233,7 +298,9 @@ unsigned int is_running (void)
     
   if ( digitalRead(RUN_WEST) == 1 )
     i += 8;  
-
+#else
+  i = i2c_read_reg(FPGA_ADDR,STATUS) & 0x0f;
+#endif
  /*
   *  Return the running mask
   */
@@ -261,6 +328,7 @@ unsigned int is_running (void)
  *-----------------------------------------------------*/
 void arm_counters(void)
   {
+#ifndef ESP32
   digitalWrite(CLOCK_START, 0);   // Make sure Clock start is OFF
   digitalWrite(STOP_N, 0);        // Cycle the stop just to make sure
   digitalWrite(RCLK,   0);        // Set READ CLOCK to LOW
@@ -268,7 +336,9 @@ void arm_counters(void)
   digitalWrite(CLR_N,  0);        // Reset the counters 
   digitalWrite(CLR_N,  1);        // Remove the counter reset 
   digitalWrite(STOP_N, 1);        // Let the counters run
-  
+#else
+  i2c_write_reg(FPGA_ADDR,CONTROL,(CLEAR|STOP));
+#endif
   return;
   }
 
@@ -279,8 +349,12 @@ void arm_counters(void)
  */
 void stop_counters(void)
   {
+#ifndef ESP32
   digitalWrite(STOP_N,0);   // Stop the counters
   digitalWrite(QUIET, 0);   // Kill the oscillator 
+#else
+  i2c_write_reg(FPGA_ADDR,CONTROL,(STOP|QUIET));
+#endif
   return;
   }
 
@@ -289,10 +363,13 @@ void stop_counters(void)
  */
 void trip_counters(void)
 {
+#ifndef ESP32
   digitalWrite(CLOCK_START, 0);
   digitalWrite(CLOCK_START, 1);     // Trigger the clocks from the D input of the FF
   digitalWrite(CLOCK_START, 0);
-
+#else
+  i2c_write_reg(FPGA_ADDR,CONTROL,START); // self clears
+#endif
   return;
 }
 /*-----------------------------------------------------
@@ -348,7 +425,7 @@ void disable_interrupt(void)
 unsigned int read_DIP(void)
 {
   unsigned int return_value;
-  
+#ifndef ESP32
   if ( revision() < REV_300 )          // The silkscreen was reversed in Version 3.0  oops
   {
     return_value =  (~((digitalRead(DIP_A) << 0) + (digitalRead(DIP_B) << 1) + (digitalRead(DIP_C) << 2) + (digitalRead(DIP_D) << 3))) & 0x0F;  // DIP Switch
@@ -357,6 +434,9 @@ unsigned int read_DIP(void)
   {
     return_value =  (~((digitalRead(DIP_D) << 0) + (digitalRead(DIP_C) << 1) + (digitalRead(DIP_B) << 2) + (digitalRead(DIP_A) << 3))) & 0x0F;  // DIP Switch
   }
+#else
+  return_value = i2c_read_reg(FPGA_ADDR,DIP) & 0x0F;  // DIP Switch
+#endif
   return_value |= json_dip_switch;  // JSON message
   return_value |= 0xF0;             // COMPILE TIME
 
@@ -387,6 +467,7 @@ void set_LED
     int state_Y           // State of the Y LED
     )
 {
+#ifndef ESP32
   if ( state_RDY >= 0 )
   {
     digitalWrite(LED_RDY, state_RDY == 0 );
@@ -401,9 +482,34 @@ void set_LED
   {
     digitalWrite(LED_Y, state_Y == 0);
   }
+#else
+  if ( state_RDY >= 0 )
+  {
+    strip.setPixelColor(LED_RDY, (state_RDY?127:0),0,0); // half red intensity
+  }
+  
+  if ( state_X >= 0 )
+  {
+    strip.setPixelColor(LED_X, (state_X?127:0),0,0); // half red intensity
+  }
+
+  if ( state_Y >= 0 )
+  {
+    strip.setPixelColor(LED_Y, (state_Y?127:0),0,0); // half red intensity
+  }
+ strip.show();
+#endif
     
   return;  
   }
+#ifdef ESP32
+void set_LEDCOLOR(unsigned int led,uint8_t r, uint8_t g, uint8_t b) {
+  strip.setPixelColor(led,r,g,b);
+}
+void set_LEDCOLOR(unsigned int led, uint32_t c) {
+  strip.setPixelColor(led,c);
+}
+#endif
 
 /* 
  *  HAL Discrete IN
@@ -412,7 +518,6 @@ bool read_in(unsigned int port)
 {
   return digitalRead(port);
 }
-
 /*-----------------------------------------------------
  * 
  * function: read_timers
@@ -428,11 +533,18 @@ bool read_in(unsigned int port)
  *-----------------------------------------------------*/
 void read_timers(void)
 {
+#ifndef ESP32 
   timer_value[N] = read_counter(N);  
   timer_value[E] = read_counter(E);
   timer_value[S] = read_counter(S);
   timer_value[W] = read_counter(W);
-
+#else
+  i2c_read_bytes(FPGA_ADDR,NORTH_LOW,8); 
+  timer_value[N] = (i2c_buf[1] <<8) + i2c_buf[0];
+  timer_value[E] = (i2c_buf[5] <<8) + i2c_buf[4];
+  timer_value[S] = (i2c_buf[3] <<8) + i2c_buf[2];
+  timer_value[W] = (i2c_buf[7] <<8) + i2c_buf[6];
+#endif
   return;
 }
 
@@ -541,3 +653,110 @@ void blink_fault
   delay(ONE_SECOND/4);
   return;
 }
+#ifdef ESP32
+//ESP32 / fpga only functions
+void spiSendFileToFPGA(char * fn) {
+  int i, sz, status;
+  uint8_t data;
+  // file should be 104090 long docs say 104161 bytes.
+  Serial.print("opening file ");
+  Serial.print(fn);
+  // open file to send
+  File f = SPIFFS.open(fn, "r");
+  if(f!=NULL) {
+    Serial.print(" open sucessful\n");
+  } else {
+    Serial.print(" open failed\n");
+    
+  }
+  if(f!=NULL) {
+     sz = f.size();
+     vspi = new SPIClass(VSPI);
+     //initialise vspi with default pins
+     //SCLK = 18, MISO = 19, MOSI = 23, SS = 5
+    vspi->begin();    // put FPGA in mode to recieve file
+    digitalWrite(SS, LOW); //pull SS low to prep other end for transfer as slave
+    digitalWrite(CRESET_B, LOW); //pull CRESET_B low to prep other end for config
+    vspi->beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE3)); // clock hi
+    delayMicroseconds(200); // wait atleast 200 us;
+    digitalWrite(CRESET_B, HIGH); //pull CRESET_B low to prep other end for config
+    delayMicroseconds(1200); // wait atleast 1200 us;
+    digitalWrite(SS, HIGH); //pull ss high siglan start
+    data = 0xa5;
+    vspi->transfer(data); // send 8 dummy clocks
+    digitalWrite(SS, LOW); //pull SS low 
+    // for testing only
+    //data = 0x5a;
+    //vspi->transfer(data); // send 8 dummy clocks
+    
+    // send file
+    for(i=0; i<sz; i++) {
+      status = f.read((uint8_t *) &data,1);
+      //data = fgetc(f);
+      //if(i<16) {Serial.print(data,HEX); Serial.print(" ");}
+      //if(i==16) {Serial.print("...\n");}
+      vspi->transfer(data);
+    }
+    digitalWrite(SS, HIGH); //pull ss high to signify end of data transfer
+    f.close();
+    // send 100 (104) clocks
+    for(i=0; i<13; i++) {
+      data = 0;
+      vspi->transfer(data);
+    }
+    // check that the FPGA is happy
+    if(digitalRead(CDONE)) {
+      Serial.print("\nProgramming success\n");
+    } else {
+      Serial.print("\nProgramming fail\n");
+    }
+    //digitalWrite(SS, HIGH); //pull ss high to signify end of data transfer
+    f.close();
+    // send 49 (56) clocks
+    for(i=0; i<7; i++) {
+      data = 0;
+      vspi->transfer(data);
+    }
+    vspi->endTransaction();
+    delete vspi;
+  }
+}
+
+  
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+   Serial.printf("Listing directory: %s\r\n", dirname);
+
+   File root = fs.open(dirname);
+   if(!root){
+      Serial.println("− failed to open directory");
+      return;
+   }
+   if(!root.isDirectory()){
+      Serial.println(" − not a directory");
+      return;
+   }
+
+   File file = root.openNextFile();
+   while(file){
+      if(file.isDirectory()){
+         Serial.print("  DIR : ");
+         Serial.println(file.name());
+         if(levels){
+            listDir(fs, file.name(), levels -1);
+         }
+      } else {
+         Serial.print("  FILE: ");
+         Serial.print(file.name());
+         Serial.print("\tSIZE: ");
+         Serial.println(file.size());
+      }
+      file = root.openNextFile();
+   }
+}
+unsigned int read_counter(unsigned int direction){         // What direction are we reading?
+  static uint8_t REGADDR[4] = {NORTH_LOW,EAST_LOW,SOUTH_LOW,WEST_LOW};
+  i2c_read_bytes(FPGA_ADDR,REGADDR[direction],2); 
+  return((i2c_buf[1] << 8) + i2c_buf[0]);
+}
+
+#endif

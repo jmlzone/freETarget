@@ -483,11 +483,6 @@ void self_test(uint16_t test)
 /*
  * Test 2. Read back the counters and make sure they match
  */
-    delay(50);
-    set_LED(LED_S, (bool) !0);           // Show second test starting
-    set_LED(LED_X, (bool) !0);
-    set_LED(LED_Y, (bool) !1);
-
     random_delay *= 8;                // Convert to clock ticks
     for (j=N; j <= W; j++ )           // Check all of the counters
     {

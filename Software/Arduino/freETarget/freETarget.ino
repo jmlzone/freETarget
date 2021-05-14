@@ -26,7 +26,16 @@ const char* names[] = { "ANON",    "BOSS",   "MINION",
                         0};
                   
 char* nesw = "NESW";                    // Cardinal Points
-                 
+#ifdef ESP32
+  #if CONFIG_IDF_TARGET_ESP32S2
+   #define VSPI FSPI
+  #endif
+  #include <HardwareSerial.h>
+  HardwareSerial AUX_SERIAL(2);
+  HardwareSerial DISPLAY_SERIAL(1);
+  SPIClass * vspi = NULL;
+  extern uint8_t i2c_buf[16];
+#endif
 /*----------------------------------------------------------------
  * 
  * function: setup()
@@ -48,6 +57,16 @@ void setup(void)
 #ifdef ESP32
   AUX_SERIAL.begin(115200,SERIAL_8N1,AUX_RX,AUX_TX); 
   DISPLAY_SERIAL.begin(115200,SERIAL_8N1,DISPLAY_RX,DISPLAY_TX); 
+  pinMode(SS, OUTPUT); //VSPI SS
+  pinMode(CRESET_B, OUTPUT);
+  if(!SPIFFS.begin()){
+    Serial.println("SPIFFS Mount Failed");
+    return;
+  }
+  Serial.println("SPIFFS start ok");
+  listDir(SPIFFS, "/", 0);
+  spiSendFileToFPGA("/etarget.bin");
+  Wire.begin(5,18); // 5 was SS for download now SDA, 18 was SCK for download now SCL
 #else
   AUX_SERIAL.begin(115200); 
   DISPLAY_SERIAL.begin(115200); 
@@ -333,6 +352,3 @@ void loop()
  */
   return;
 }
-
-
-

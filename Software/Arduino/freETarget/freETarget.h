@@ -29,18 +29,6 @@
  * Compilation Flags
  */
 #define SAMPLE_CALCULATIONS false     // Trace the COUNTER values
-#ifdef ESP32
-#define AUX_SERIAL         HardwareSerial(2)    // Auxilary Connector
-#define AUX_TX             16
-#define AUX_RX             17
-#define DISPLAY_SERIAL     HardwareSerial(1)    // Serial port for slave display
-#define DISPLAY_TX         14
-#define DISPLAY_RX         15
-#else
-#define AUX_SERIAL         Serial3    // Auxilary Connector
-#define DISPLAY_SERIAL     Serial2    // Serial port for slave display
-#endif
-
 #define PRINT(x)  {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);}
 #define GET(ch)   {if ( Serial.available() )              ch = Serial.read();         \
                    else if ( AUX_SERIAL.available() )     ch = AUX_SERIAL.read();     \
