@@ -22,7 +22,10 @@ module jml_i2c  #(
   output logic [7:0] write_data,
   input [7:0] 	     read_data,
   output logic 	     rd_pop,
-  output logic 	     trace_rd_reset
+  output logic 	     trace_rd_reset,
+  // debug
+  input  [1:0] debug_sel,
+  output logic [2:0] i2c_debug
 );
 /*----------------------------------------------------------------------
   Declarations
@@ -51,6 +54,7 @@ localparam
           I2C_WRITE = 3'd5;
 
 logic i2c_resetS_n;
+logic i2c_reset_n;
 logic i2cS, i2cP;
 
 logic [2:0] i2c_state, i2c_nxt;
@@ -58,7 +62,14 @@ logic my_addr;
 logic got_ack, got_ack_nxt;
 logic i2c_read;
 assign i2c_resetS_n = reset_n && ~(i2c_state==I2C_ADDR);
+assign i2c_resetP_n = reset_n && ~(i2cS);
 logic first_write_done, first_write_done_nxt;
+logic scl_F, sda_F;
+//SB_FILTER_50NS sclFilter(.FILTERIN(scl),.FILTEROUT(scl_F));
+//SB_FILTER_50NS sdaFilter(.FILTERIN(sda),.FILTEROUT(sda_F));
+assign scl_F = scl;
+assign sda_F = sda;
+assign i2c_reset_n = reset_n && ~i2cP;
 
 /*----------------------------------------------------------------------
   I2C behavior
@@ -80,20 +91,20 @@ logic first_write_done, first_write_done_nxt;
   a write has occured
   any write after read.
 ----------------------------------------------------------------------*/
-always @(negedge sda or negedge i2c_resetS_n)
+always @(negedge sda_F or negedge i2c_resetS_n)
   if(!i2c_resetS_n)
     i2cS <=  1'b0;
   else
-    if(scl) // start condition
+    if(scl_F) // start condition
       i2cS <=  1'b1;
     else
       i2cS <=  1'b0;
 
-always @(posedge sda or negedge reset_n)
-  if(!reset_n)
+always @(posedge sda_F or negedge i2c_resetP_n)
+  if(!i2c_resetP_n)
     i2cP <=  1'b0;
   else
-    if(scl) // stop condition
+    if(scl_F && (bit_cnt==3'b000)) // stop condition
       i2cP <=  1'b1;
     else
       i2cP <=  1'b0;
@@ -101,7 +112,7 @@ always @(posedge sda or negedge reset_n)
 /*----------------------------------------------------------------------
  i2c state machine
 ----------------------------------------------------------------------*/
-always @(negedge scl or negedge reset_n)
+always @(negedge scl_F or negedge reset_n)
   if(!reset_n)
     begin
       i2c_state <=  I2C_IDLE;
@@ -186,13 +197,15 @@ always @*
          && bit_cnt7)
       sda_drv_lo = 1'b1; // send ack
     else
-      if(((i2c_nxt == I2C_READ) || ((i2c_nxt == I2C_READ_ACK) && got_ack)) && (bit_cnt != 7))  // need to allow for ack in
+      if((i2c_nxt == I2C_READ) && (bit_cnt != 7))   // need to allow for ack in
         sda_drv_lo = ~read_data_rev[bit_cnt_nxt];
-      else 
+      else if((i2c_nxt == I2C_READ_ACK) && got_ack)
+	sda_drv_lo = ~read_data[7];
+      else
         sda_drv_lo = 1'b0;
 
     if((i2c_state == I2C_READ) && (bit_cnt7))
-      got_ack_nxt = ~sda;
+      got_ack_nxt = ~sda_F;
     else 
       got_ack_nxt = 1'b0;
 
@@ -207,7 +220,7 @@ always @*
 ----------------------------------------------------------------------*/
 // bit_cnt is on shift_clk (scl)
 // sample (capture) clock
-always @(negedge scl or negedge reset_n)
+always @(negedge scl_F or negedge reset_n)
   if(!reset_n)
     begin
       addr        <=  6'b0;
@@ -234,7 +247,7 @@ always @*
     if(
        ((i2c_state != I2C_IDLE) && bit_cnt !=7) 
       )
-      srdata_nxt = {srdata[6:0], sda};
+      srdata_nxt = {srdata[6:0], sda_F};
     else
       srdata_nxt = srdata;
 
@@ -331,11 +344,23 @@ always @(read_latch_open or read_data)
   if(read_latch_open)
     read_data_rev <=  read_data;
 */
-always @(posedge scl or negedge reset_n)
+always @(negedge scl_F or negedge reset_n)
   if(!reset_n)
     read_data_rev <= 8'h00;
   else
     if(bit_cnt==0) read_data_rev <= read_data;
 
+/*----------------------------------------------------------------------
+ debug mux
+----------------------------------------------------------------------*/
+always_comb
+  case(debug_sel)
+    2'b00 : i2c_debug = i2c_state;
+    2'b01 : i2c_debug = bit_cnt;
+    2'b10 : i2c_debug = {bit_cnt7,i2cP,i2cS};
+    default: i2c_debug = {bit_cnt7,got_ack,sda_drv_lo};
+  endcase // case (debug_sel)
+
+    
 endmodule // jml_i2c
 

@@ -21,7 +21,7 @@ module slope_det (
   input [5:0] slope, // delta slope looked for (at 8mhz (0.125us) for delta t = 4*0.125uS or 0.5uS)
   output logic sdm,  // The sdm bit back to the analog integrator
   output logic det,  // slope detected (at 8mhz rate)
-  output logic [2:0] conv // the 3 bit adc value at 8MHz.
+  output logic [3:0] conv // the 3 bit adc value at 8MHz.
 ); 
 logic [2:0] acc;
 logic [2:0] srLPF0;  // It would have been nice to be a 2d array but iVerilog / VCD does not handle 2d arrays.
@@ -82,7 +82,7 @@ always_comb
   begin
     lpf2 = srLPF0 +  srLPF1 +  srLPF2 + srLPF3;
     lpf3 = srLPF4 +  srLPF5 +  srLPF6 + srLPF7;
-    conv = lpf3 [5:2];
+    conv = lpf3 [5:1];
     if(slope_neg)
       diff = lpf3 - lpf2;
     else

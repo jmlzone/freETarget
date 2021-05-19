@@ -108,6 +108,7 @@ void stop_enable_counters(void);              // this HAL should be added to the
 #define DISPLAY_RX         13
 #define CDONE               2
 #define CRESET_B            0
+#define QUIETN             19
 // 5 analogs checked, 0 - 4059
 #define VREF                A0
 #define NORTH_ANA           A3

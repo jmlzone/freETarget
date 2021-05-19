@@ -24,7 +24,12 @@ module etarget(
   output logic pcm2,
   output logic pcm3,
   output logic pcm4,
-  output logic pcm5
+  output logic pcm5,
+  output logic [2:0] debug,
+  // blinky example
+  output wire  led_blue,
+  output wire  led_green,
+  output wire  led_red
   );
 // pin instances for non trivial io
 logic 	 sda, sda_drv_lo;
@@ -32,8 +37,9 @@ logic 	 clk_8m;
 logic 	 comp0, comp1, comp2, comp3, comp4, comp5;
 // I2C SDA Pin
 SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b0)
+    .PIN_TYPE(6'b1010_01),
+    .PULLUP(1'b0),
+    .IO_STANDARD("SB_LVCMOS")
 )   myi2cpin (
     .PACKAGE_PIN(sda_pin),
     .OUTPUT_ENABLE(sda_drv_lo),
@@ -169,6 +175,7 @@ logic [5:0] slope;
 logic [7:0] rec_sel;
 logic [7:0] rec_ctl;
 logic [7:0] trigger_depth;
+logic [7:0] debug_ctl;
 
 logic [15:0] count_north;
 logic [15:0] count_south;
@@ -177,7 +184,7 @@ logic [15:0] count_west;
 logic [5:0]  addr;
 logic [7:0]  read_data;
 logic [7:0]  write_data;
-logic [2:0]  conv0, conv1, conv2, conv3, conv4, conv5;
+logic [3:0]  conv0, conv1, conv2, conv3, conv4, conv5;
 wire         det0, det1, det2, det3, det4;
 
 logic 	     read;
@@ -191,10 +198,12 @@ logic	     start_north, start_south, start_east, start_west;
 logic 	     rd_pop;
 logic 	     trace_rd_reset;
 logic [7:0]  trace_data;
+logic [2:0]  i2c_debug;
 
 
 //I2c slave port
 jml_i2c #(.MYI2C_ADDR('h10)) i2c(
+  .debug_sel(debug_ctl[1:0]),
   .*
   );
 // clock divider
@@ -245,6 +254,7 @@ always @*
       6'h13: read_data = conv3;
       6'h14: read_data = conv4;
       6'h15: read_data = conv5;
+      6'h20: read_data = debug_ctl;
       6'h3?: read_data = trace_data;
       default: read_data = 8'h00;
     endcase // case (addr)
@@ -259,6 +269,7 @@ always @(posedge clk8M or negedge reset_n)
 	rec_sel <= 8'b0;
 	rec_ctl <= 8'b0;
 	trigger_depth <= 8'b0;
+	debug_ctl <= 8'b0;
       end
     else
       begin
@@ -268,6 +279,7 @@ always @(posedge clk8M or negedge reset_n)
 	  if(addr == 6'hd) rec_sel <= write_data;
 	  if(addr == 6'he) rec_ctl <= write_data;
 	  if(addr == 6'hf) trigger_depth <= write_data;
+	  if(addr == 6'h20) debug_ctl <= write_data;
       end
       if(clear | stop | start)
          control <= control & 8'hf4;  //auto clear 'clear', 'stop' and 'start' bits
@@ -465,5 +477,27 @@ SB_IO #(
   .D_IN_0 (pin_west),
   .D_IN_1 ()
 );
+// blinky to show that the clock is running
+  localparam N = 27;
+   reg [N:0] counter;
 
+   always @(posedge clk8M)
+     counter <= counter + 1;
+
+   assign led_blue = counter[N];
+   assign led_green = counter[N-1];
+   assign led_red = counter[N-2];
+
+/*----------------------------------------------------------------------
+ debug mux
+----------------------------------------------------------------------*/
+always_comb
+  case(debug_ctl[3:2])
+    2'b00: debug = i2c_debug;
+    2'b01: debug = {det2,det1,det0};
+    2'b10: debug = {det5,det4,det3};
+    default: debug = control[2:0];
+  endcase // case (debug_ctl[3:2])
+
+    
 endmodule // etarget

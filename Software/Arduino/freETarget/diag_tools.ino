@@ -411,7 +411,8 @@ void self_test(uint16_t test)
    unsigned int random_delay;    // Delay duration
    unsigned int sensor_status;   // Sensor status
    int          x;               // Time difference (signed)
-   unsigned int hx;              // Boolean difference
+   int          x1;               // Time difference (signed)
+   int          x2;               // Time difference (signed)
    bool         test_passed;     // Record if the test failed
    long         now;             // Current time
    
@@ -476,25 +477,40 @@ void self_test(uint16_t test)
 
     if ( sensor_status != 0x0F )      // The circuit was triggered but not all
     {                                 // FFs latched
-      Serial.print("\r\nFailed Clock Test. sensor_status:"); show_sensor_status(sensor_status);
+      Serial.print("\r\nFailed Clock Test. Timers did not start. run_status:"); show_sensor_status(sensor_status);
+      return false;
+    }
+    sensor_status = is_running();     // Remember all of the running timers
+    if ( sensor_status != 0x00)      // The circuit was triggered but not all
+    {                                 // FFs latched
+      Serial.print("\r\nFailed Clock Test. Timers did not stop. run_status:"); show_sensor_status(sensor_status);
       return false;
     }
 
 /*
  * Test 2. Read back the counters and make sure they match
  */
+    Serial.print("\r\nRandom_delay in uS expected: ");
+    Serial.print(random_delay);
+    Serial.print("\r\n");
+
     random_delay *= 8;                // Convert to clock ticks
     for (j=N; j <= W; j++ )           // Check all of the counters
     {
-      x  = read_counter(j);
-      if ( read_counter(j) != x )
+      x1  = read_counter(j);
+      x2  = read_counter(j);
+      //if ( read_counter(j) != x )
+      if ( x1 != x2 )
       {
         Serial.print("\r\nFailed Clock Test. Counter did not stop:");
+        Serial.print(" X1 = ");
+        Serial.print(x1);
+        Serial.print(" X2 = ");
+        Serial.print(x2);
         test_passed = false;          // since there is delay  in
       }                               // Turning off the counters
- 
+      x=x1;
       x  -= random_delay;
-      hx = read_counter(j) ^ random_delay;
 
       if ( x < 0 )
       {
@@ -503,7 +519,8 @@ void self_test(uint16_t test)
 
       if ( x > 1000 )                 // The time should be 
       {                               // Within 1000 counts.
-        Serial.print("\r\nFailed Clock Test. Counter:"); Serial.print(nesw[j]); Serial.print(" Is:"); Serial.print(read_counter(j)); Serial.print(" Should be:"); Serial.print(random_delay); Serial.print(" Time:"); Serial.print(x);
+        Serial.print("\r\nFailed Clock Test. Counter:"); Serial.print(nesw[j]); Serial.print(" Is:"); Serial.print(x1); Serial.print(" Should be:"); Serial.print(random_delay); Serial.print(" Time:"); Serial.print(x); 
+        Serial.print(" hex: "); Serial.print(x1,HEX);
         test_passed = false;          // since there is delay  in
       }                               // Turning off the counters
     }
@@ -608,7 +625,7 @@ void set_trip_point
   
   if ( is_trace )                                           // Infinite number of passes?
   {
-    Serial.print("\r\nSetting trip point. Type ! of cycle power to exit\r\n");
+    Serial.print("\r\nSetting trip point. Type ! or cycle power to exit\r\n");
   }
   blinky = 0;
   not_in_spec = true;                                      // Start off by assuming out of spec

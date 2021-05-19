@@ -11,6 +11,7 @@
 #include "nonvol.h"
 #include "mechanical.h"
 #include "diag_tools.h"
+#include "i2c_bb.h"
 
 history_t history;  
 
@@ -66,7 +67,12 @@ void setup(void)
   Serial.println("SPIFFS start ok");
   listDir(SPIFFS, "/", 0);
   spiSendFileToFPGA("/etarget.bin");
-  Wire.begin(5,18); // 5 was SS for download now SDA, 18 was SCK for download now SCL
+  #ifdef I2C_BB
+  i2cbb_init();
+  #else
+  Wire.begin(5,18,1200000); // 5 was SS for download now SDA, 18 was SCK for download now SCL
+  Wire.setTimeOut(100);
+  #endif
 #else
   AUX_SERIAL.begin(115200); 
   DISPLAY_SERIAL.begin(115200); 

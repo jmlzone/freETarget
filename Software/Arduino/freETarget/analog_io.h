@@ -17,13 +17,13 @@ void set_LED_PWM(int percent);      // Set the PWM duty cycle
  *  Port Definitions
  */
 #ifdef ESP32
-#define NORTH_ANA       3       // North Analog Input
-#define EAST_ANA        6       // East Analog Input
-#define SOUTH_ANA       7       // South Analog Input
-#define WEST_ANA        4       // West Analog Input
-#define SPARE_2A       18       // Not Used
-#define V_REFERENCE     0       // Reference Input
-#define ANALOG_VERSION 13       // Analog Version Input
+#define NORTH_ANA      A3       // North Analog Input
+#define EAST_ANA       A6       // East Analog Input
+#define SOUTH_ANA      A7       // South Analog Input
+#define WEST_ANA       A4       // West Analog Input
+#define SPARE_2A       A18      // Not Used
+#define V_REFERENCE    A0       // Reference Input
+#define ANALOG_VERSION A13      // Analog Version Input
 #define LED_PWM        16       // PWM Port
 #else
 #define NORTH_ANA    1          // North Analog Input

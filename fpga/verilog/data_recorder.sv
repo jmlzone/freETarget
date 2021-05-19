@@ -2,12 +2,12 @@ module data_recorder (
   input 	     clk8M, // filters and down stream logic at 8MHz. Known phase relationship
   input 	     reset_n,
   input [5:0] 	     det,
-  input [2:0] 	     conv0,
-  input [2:0] 	     conv1,
-  input [2:0] 	     conv2,
-  input [2:0] 	     conv3,
-  input [2:0] 	     conv4,
-  input [2:0] 	     conv5,
+  input [3:0] 	     conv0,
+  input [3:0] 	     conv1,
+  input [3:0] 	     conv2,
+  input [3:0] 	     conv3,
+  input [3:0] 	     conv4,
+  input [3:0] 	     conv5,
   input [7:0] 	     rec_sel,
   input [7:0] 	     rec_ctl,
   input [7:0] 	     trigger_depth,
@@ -104,28 +104,28 @@ always_ff @(posedge clk8M or negedge reset_n)
 	wr_addr <= wr_addr_nxt;
 	trigger_point <= trigger_point_nxt;	
 	case(rec_sel[1:0])
-	  2'b00: wdata0 <= {1'b0, conv0};
-	  2'b01: wdata0 <= {1'b0, conv1};
-	  2'b10: wdata0 <= {1'b0, conv2};
-	  default: wdata0 <= {1'b0, conv3};
+	  2'b00: wdata0 <= conv0;
+	  2'b01: wdata0 <= conv1;
+	  2'b10: wdata0 <= conv2;
+	  default: wdata0 <= conv3;
 	endcase // case (rec_sel[1:0])
 	case(rec_sel[3:2])
-	  2'b00: wdata1 <= {1'b0, conv0};
-	  2'b01: wdata1 <= {1'b0, conv1};
-	  2'b10: wdata1 <= {1'b0, conv2};
-	  default: wdata1 <= {1'b0, conv3};
+	  2'b00: wdata1 <= conv0;
+	  2'b01: wdata1 <= conv1;
+	  2'b10: wdata1 <= conv2;
+	  default: wdata1 <= conv3;
 	endcase // case (rec_sel[3:2])
 	case(rec_sel[5:4])
-	  2'b00: wdata2 <= {1'b0, conv2};
-	  2'b01: wdata2 <= {1'b0, conv3};
-	  2'b10: wdata2 <= {1'b0, conv4};
-	  default: wdata2 <= {1'b0, conv5};
+	  2'b00: wdata2 <= conv2;
+	  2'b01: wdata2 <= conv3;
+	  2'b10: wdata2 <= conv4;
+	  default: wdata2 <= conv5;
 	endcase // case (rec_sel[5:4])
 	case(rec_sel[7:6])
-	  2'b00: wdata3 <= {1'b0, conv2};
-	  2'b01: wdata3 <= {1'b0, conv3};
-	  2'b10: wdata3 <= {1'b0, conv4};
-	  default: wdata3 <= {1'b0, conv5};
+	  2'b00: wdata3 <= conv2;
+	  2'b01: wdata3 <= conv3;
+	  2'b10: wdata3 <= conv4;
+	  default: wdata3 <= conv5;
 	endcase // case (rec_sel[7:6])
       end // else: !if(!reset_n)
   end // always_ff @ (posedge clk8M or negedge reset_n)

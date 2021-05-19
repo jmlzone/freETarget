@@ -6,7 +6,7 @@
  * 
  * ----------------------------------------------------*/
 #include "io_includes.h"
-
+#include "i2c_bb.h"
 typedef struct {
   byte port;
   byte in_or_out;
@@ -74,7 +74,6 @@ GPIO_INIT init_table[] = {
   
   {SPARE_1,     OUTPUT, 1},               // 18-Paper drive active low
   {SPARE_2,     INPUT_PULLUP, 0},
-  
   {EOF, EOF, EOF} };
 #endif
 void face_ISR(void);
@@ -224,40 +223,78 @@ unsigned int read_counter
 /*-----------------------------------------------------
    i2c wrapper functions
    (because the 'wire library' is a bit weak)
+   ESP32 wire library has a 128 byte max buffer
  *-----------------------------------------------------*/
  uint8_t i2c_buf[16]; // A static buffer used for I2C write and read
+ uint8_t cnt, avail, err, retries;
+ #ifdef I2C_BB
+ void i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val){
+ i2c_buf[0] = reg_addr;
+ i2c_buf[1] = val;
+ i2cbb_write (dev_addr, 2, i2c_buf);
+}
+ uint8_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr) {
+ i2cbb_read(dev_addr, 1, reg_addr, i2c_buf);
+ return(i2c_buf[0]);
+}
+ void i2c_read_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n) {
+ i2cbb_read(dev_addr, n, reg_addr, i2c_buf);
+}
+ #else
+ #define MAX_I2C_RETRIES 15
+ void i2c_err_chk(uint8_t n, uint8_t exp) {
+   avail = Wire.available();
+   err = Wire.lastError();
+   if((exp != avail) || (n!=avail)) {
+    Serial.print("I2C ERR n != Exp != Avail expected ");
+    Serial.print(n);
+    Serial.print(", "),
+    Serial.print(exp);
+    Serial.print(" but have ");
+    Serial.print(avail);
+    Serial.print(" available\r\n"); 
+   }
+   if(err) {
+    Serial.print("I2C ERR code: ");
+    Serial.print(Wire.getErrorText(err));
+    Serial.print("\r\n");
+   }
+ }
  void i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val){
   Wire.beginTransmission(dev_addr);
   Wire.write(reg_addr);
   Wire.write(val);
   Wire.endTransmission();
+  Wire.flush();
 }
- void i2c_write_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n){
-   int i;
-   Wire.beginTransmission(dev_addr);
-   Wire.write(reg_addr);
-   for(i=0; i<n;i++) {
-     Wire.write(i2c_buf[i]);
-   }
-   Wire.endTransmission();
- }
  uint8_t i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr) {
    Wire.beginTransmission(dev_addr);
    Wire.write(reg_addr);
    Wire.endTransmission();
-   Wire.requestFrom(dev_addr,1);
-   return(Wire.read());
+   cnt = Wire.requestFrom(dev_addr,1,true);
+   i2c_err_chk(1,cnt);
+   i2c_buf[0] = Wire.read();
+   Wire.flush();
+   return(i2c_buf[0]);
  }
  void i2c_read_bytes(uint8_t dev_addr, uint8_t reg_addr, uint8_t n) {
-   Wire.beginTransmission(dev_addr);
-   Wire.write(reg_addr);
-   Wire.endTransmission();
-   Wire.requestFrom(dev_addr,n);
+   cnt = 0;
+   retries = 0;
+   while((cnt !=n) && (retries<MAX_I2C_RETRIES)) {
+    Wire.flush();
+    Wire.beginTransmission(dev_addr);
+    Wire.write(reg_addr);
+    Wire.endTransmission();
+    cnt = Wire.requestFrom(dev_addr,n,true);
+    retries++;
+   }
+   i2c_err_chk(n,cnt);
    for(i=0; i<n;i++) {
      i2c_buf[i] = Wire.read();
    }
+   Wire.flush();
  }
-
+#endif
 void stop_enable_counters(void)
   {
     i2c_write_reg(FPGA_ADDR,CONTROL,STOP);
@@ -337,6 +374,7 @@ void arm_counters(void)
   digitalWrite(CLR_N,  1);        // Remove the counter reset 
   digitalWrite(STOP_N, 1);        // Let the counters run
 #else
+  //delay(2); // allow the clock time to start
   i2c_write_reg(FPGA_ADDR,CONTROL,(CLEAR|STOP));
 #endif
   return;
@@ -354,6 +392,8 @@ void stop_counters(void)
   digitalWrite(QUIET, 0);   // Kill the oscillator 
 #else
   i2c_write_reg(FPGA_ADDR,CONTROL,(STOP|QUIET));
+  //delay(2); // allow the clock time to propigate
+  //delay(2); // allow the clock time to stop
 #endif
   return;
   }
@@ -718,6 +758,7 @@ void spiSendFileToFPGA(char * fn) {
       vspi->transfer(data);
     }
     vspi->endTransaction();
+    vspi->end();
     delete vspi;
   }
 }

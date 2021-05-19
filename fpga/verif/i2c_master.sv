@@ -17,10 +17,10 @@ logic [6:0] dev_addr;
 logic [7:0] reg_addr;
 logic [7:0] data[0:1023]; // read or write data for bursts
 // timing paramaters
-localparam DS = 100 ;
-localparam SP = 100 ;
-localparam ST = 100 ;
-localparam CLKHI = 100;
+localparam DS = 1000 ;
+localparam SP = 1000 ;
+localparam ST = 1000 ;
+localparam CLKHI = 1000;
 
 task write(input int len);
 int idx;
