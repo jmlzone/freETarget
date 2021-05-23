@@ -5,10 +5,13 @@
  * JSON driver
  * 
  * ----------------------------------------------------*/
-
-#include <EEPROM.h>
 #include "io_includes.h"
 #include "nonvol.h"
+#ifndef ESP32
+  #include <EEPROM.h>
+#else
+  extern nvmdata_t nvmdata;
+#endif
 
 static char input_JSON[128];
 
@@ -208,7 +211,11 @@ bool    return_value;
             *JSON[j].value = x;                               // Save the value
             if ( JSON[j].non_vol != 0 )
             {
+#ifndef ESP32
               EEPROM.put(JSON[j].non_vol, x);                 // Store into NON-VOL
+#else
+	      update_nvm(JSON[j].non_vol, x);
+#endif
             }
             
             break;
@@ -219,7 +226,11 @@ bool    return_value;
             *JSON[j].d_value = y;                             // Save the value
             if ( JSON[j].non_vol != 0 )
             {
+#ifndef ESP32
               EEPROM.put(JSON[j].non_vol, y);                 // Store into NON-VOL
+#else
+	      update_nvm(JSON[j].non_vol, y);
+#endif
             }
             break;
         }
@@ -299,13 +310,13 @@ int instr(char* s1, char* s2)
  * 
  *-----------------------------------------------------*/
 
+
 void show_echo(int v)
 {
   unsigned int i;
   
   Serial.print("\r\n{\r\n");
   Serial.print("\"NAME\":\""), Serial.print(names[json_name_id]); Serial.print("\", \r\n");
-  
   i=0;
   while (JSON[i].token != 0 )
   {
@@ -317,7 +328,12 @@ void show_echo(int v)
           
       case IS_INT16:
         Serial.print(JSON[i].token);
-        Serial.print(*JSON[i].value); Serial.print(", \r\n");
+        if(JSON[i].value!=NULL){
+	  Serial.print(*JSON[i].value);
+	}else{
+	  Serial.print("NULL");
+	}
+	Serial.print(", \r\n");
         break;
 
       case IS_FLOAT:
@@ -329,7 +345,11 @@ void show_echo(int v)
     i++;
   }
 
+#ifndef ESP32
   EEPROM.get(NONVOL_INIT, i);
+#else
+  i = nvmdata.init;
+#endif
   Serial.print("\r\n");
   Serial.print("\"INIT\":");        Serial.print(i);                      Serial.print(", \r\n");
   Serial.print("\"IS_TRACE\":");    Serial.print(is_trace);               Serial.print(", \r\n");
@@ -435,4 +455,3 @@ static void show_test(int test_number)
    */
     return;   
  }
-

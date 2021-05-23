@@ -34,5 +34,32 @@ void gen_position(int  v);      // Reset the position values
 #if ( (NEXT_NONVOL) > 4096 )
 #error OUT OF NONVOL
 #endif
-
+#ifdef ESP32
+  typedef struct {
+    int init;
+    double sensor_dia;
+    int dip_switch;
+    int paper_time;
+    int test_mode;
+    int calibre_x10;
+    int sensor_angle;
+    int north_x;
+    int north_y;
+    int east_x;
+    int east_y;
+    int south_x;
+    int south_y;
+    int west_x;
+    int west_y;
+    int power_save;
+    int name_id;
+    int ring_x10;
+    int led_pwm;
+    int send_miss;
+  } nvmdata_t;
+void write_nvm_dat(void);
+void update_nvm(unsigned int d, unsigned int v);
+void update_nvm(unsigned int d, double v);
+//void update_nvm(unsigned int d, float v);
+#endif
 #endif

@@ -379,28 +379,28 @@ always @(posedge clk64M or negedge reset_n)
     begin
       if(run_north)
 	latch_north <= 1'b0;
-      else if(pin_north)
+      else if(~pin_north)
 	latch_north <= 1'b1;
       else
 	latch_north <= latch_north; // hold
 
       if(run_east)
 	latch_east <= 1'b0;
-      else if(pin_east)
+      else if(~pin_east)
 	latch_east <= 1'b1;
       else
 	latch_east <= latch_east; // hold
 
       if(run_south)
 	latch_south <= 1'b0;
-      else if(pin_south)
+      else if(~pin_south)
 	latch_south <= 1'b1;
       else
 	latch_south <= latch_south; // hold
 
       if(run_west)
 	latch_west <= 1'b0;
-      else if(pin_west)
+      else if(~pin_west)
 	latch_west <= 1'b1;
       else
 	latch_west <= latch_west; // hold

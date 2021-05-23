@@ -40,10 +40,10 @@ initial
     $dumpvars(0,tb_etarget);
 
     mode = 0;
-    mic_north = 0;
-    mic_south = 0;
-    mic_east  = 0;
-    mic_west  = 0;
+    mic_north = 1;
+    mic_south = 1;
+    mic_east  = 1;
+    mic_west  = 1;
     {DIPD, DIPC, DIPB, DIPA} = 4'ha;
     reset_n = 0;
     repeat(5) @(negedge clk64M) ;
@@ -115,18 +115,18 @@ initial
 	    
     
     #1us;
-    mic_north = 1;
-    #1us;
     mic_north = 0;
-    mic_south = 1;
     #1us;
+    mic_north = 1;
     mic_south = 0;
-    mic_east  = 1;
     #1us;
+    mic_south = 1;
     mic_east  = 0;
-    mic_west  = 1;
     #1us;
+    mic_east  = 1;
     mic_west  = 0;
+    #1us;
+    mic_west  = 1;
     #100us;
     i2c.reg_addr = 1; //control
     i2c.data[0] = 2;  //stop[1]

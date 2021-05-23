@@ -10,7 +10,10 @@
 #include "io_includes.h"
 #include "mechanical.h"
 #include "diag_tools.h"
-
+#ifdef ESP32
+ #include "nonvol.h"
+ extern nvmdata_t nvmdata;
+#endif
 const char* which_one[4] = {"North: ", "East: ", "South: ", "West: "};
 
 #define TICK(x) (((x) / 0.33) * OSCILLATOR_MHZ)   // Distance in clock ticks
@@ -62,7 +65,12 @@ void self_test(uint16_t test)
   {
     default:                                    // Undefined test
       json_test = 0;                            // Force to 0 
+#ifndef ESP32
       EEPROM.put(NONVOL_TEST_MODE, json_test);  // and fall through
+#else
+      nvmdata.test_mode = json_test;
+      write_nvm_dat();
+#endif
       break;
 
 /*
@@ -283,7 +291,12 @@ void self_test(uint16_t test)
     case T_FACE:
       Serial.print("\r\nFace strike test");
       face_strike = 0;
+#ifndef ESP32
       EEPROM.put(NONVOL_TEST_MODE, T_HELP);     // Stop the test on the next boot cycle
+#else
+      nvmdata.test_mode = T_HELP;
+      write_nvm_dat();
+#endif
       while (1)
       {        
         if ( face_strike != 0 )
@@ -306,7 +319,12 @@ void self_test(uint16_t test)
   */
     if ( json_test == T_HELP )
     {
+#ifndef ESP32
       EEPROM.put(NONVOL_TEST_MODE, T_HELP);     // Stop the test on the next boot cycle
+#else
+      nvmdata.test_mode = T_HELP;
+      write_nvm_dat();
+#endif
     }
     return;
 }
