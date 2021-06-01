@@ -30,7 +30,9 @@ void gen_position(int  v);      // Reset the position values
 #define NONVOL_1_RINGx10      (NONVOL_NAME_ID     + sizeof(int) + 2)       // Size of the 1 ring in mm
 #define NONVOL_LED_PWM        (NONVOL_1_RINGx10   + sizeof(int) + 2)       // LED PWM value
 #define NONVOL_SEND_MISS      (NONVOL_LED_PWM     + sizeof(int) + 2)       // Send the MISS message when true
-#define NEXT_NNONVOL          (NONVOL_SEND_MISS   + sizeof(int) + 2)       // Last marker
+#define NONVOL_SERIAL_NO      (NONVOL_SEND_MISS   + sizeof(int) + 2)       // EIN
+
+#define NEXT_NNONVOL          (NONVOL_SERIAL_NO   + sizeof(int) + 2)       // Last marker
 #if ( (NEXT_NONVOL) > 4096 )
 #error OUT OF NONVOL
 #endif
@@ -56,6 +58,7 @@ void gen_position(int  v);      // Reset the position values
     int ring_x10;
     int led_pwm;
     int send_miss;
+    int serial_number;
   } nvmdata_t;
 void write_nvm_dat(void);
 void update_nvm(unsigned int d, unsigned int v);

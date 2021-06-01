@@ -93,6 +93,7 @@ void disable_interrupt(void);                             // Turn off the face s
 #else
 #include <Wire.h>
 #include <HardwareSerial.h>
+#include <BluetoothSerial.h>
 void set_LEDCOLOR(unsigned int led, uint8_t r, uint8_t g, uint8_t b);   // Manage the LED as rgb
 void set_LEDCOLOR(unsigned int led, uint32_t c);   // Manage the LED as rgb
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels);

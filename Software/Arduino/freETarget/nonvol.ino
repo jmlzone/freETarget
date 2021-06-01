@@ -85,6 +85,7 @@ void read_nonvol(void)
     EEPROM.put(NONVOL_NAME_ID,    1);
     EEPROM.put(NONVOL_1_RINGx10, 1555);
     EEPROM.put(NONVOL_SEND_MISS,  0);
+    EEPROM.put(NONVOL_SERIAL_NO,  0);
     
     nonvol_init = INIT_DONE;
     EEPROM.put(NONVOL_INIT, INIT_DONE);
@@ -145,6 +146,7 @@ void read_nonvol(void)
   EEPROM.get(NONVOL_POWER_SAVE, json_power_save);
   EEPROM.get(NONVOL_LED_PWM,    json_LED_PWM);
   EEPROM.get(NONVOL_SEND_MISS,  json_send_miss);
+  EEPROM.get(NONVOL_SERIAL_NO,  json_serial_number);
 #else
   File f = SPIFFS.open("/nvm.dat", "r");
   if(!f) { // file does not exist
@@ -227,6 +229,7 @@ void read_nonvol(void)
   json_power_save = nvmdata.power_save;
   json_LED_PWM = nvmdata.led_pwm;
   json_send_miss = nvmdata.send_miss;
+  json_serial_number = nvmdata.serial_number;
 
   if(nonvol_init == 1) {
     write_nvm_dat();

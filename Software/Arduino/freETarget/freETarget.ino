@@ -34,6 +34,7 @@ char* nesw = "NESW";                    // Cardinal Points
   #include <HardwareSerial.h>
   HardwareSerial AUX_SERIAL(2);
   HardwareSerial DISPLAY_SERIAL(1);
+  BluetoothSerial BT_Serial;
   SPIClass * vspi = NULL;
   extern uint8_t i2c_buf[16];
 #endif
@@ -57,7 +58,10 @@ void setup(void)
   Serial.begin(115200);
 #ifdef ESP32
   AUX_SERIAL.begin(115200,SERIAL_8N1,AUX_RX,AUX_TX); 
-  DISPLAY_SERIAL.begin(115200,SERIAL_8N1,DISPLAY_RX,DISPLAY_TX); 
+  DISPLAY_SERIAL.begin(115200,SERIAL_8N1,DISPLAY_RX,DISPLAY_TX);
+  if(!BT_Serial.begin("Etarget")) {
+    Serial.print("Eror starting bluetooth\n");
+  }
   pinMode(SS, OUTPUT); //VSPI SS
   pinMode(CRESET_B, OUTPUT);
   if(!SPIFFS.begin()){
@@ -84,30 +88,29 @@ void setup(void)
  *  Set up the port pins
  */
   init_gpio();  
-  is_trace = read_DIP() & (VERBOSE_TRACE);   
   init_sensors();
   init_analog_io();
   randomSeed( analogRead(V_REFERENCE));   // Seed the random number generator
-  
-/*
- * Run the power on self test
- */
-  POST_0(PORT_ALL);                   // Show the version string on all ports
-  POST_1();                           // Cycle the LEDs
-  if ( POST_2() == false )            // If the timers fail, 
-  {
-    Serial.print("\n\rPOST_2 Failed\n\r");
-    while(1)
-    {
-      blink_fault(POST2_FAILED);
-    }
-  }
-  POST_3();                           // Show the trip point
-  
+  is_trace = read_DIP() & (VERBOSE_TRACE);
+     
 /*
  * Initialize variables
  */
   read_nonvol();
+  
+/*
+ * Run the power on self test
+ */
+  POST_version(PORT_ALL);             // Show the version string on all ports
+  show_echo(0);
+  POST_LEDs();                        // Cycle the LEDs
+  while ( (POST_counters() == false)  // If the timers fail
+              && !is_trace)           // and not in trace mode 
+  {
+    Serial.print("\n\rPOST_2 Failed\n\r");  // Blink the LEDs
+    blink_fault(POST_COUNT_FAILED);         // and try again
+  }
+  POST_trip_point();                  // Show the trip point
   
 /*
  * Turn off the self test
@@ -130,8 +133,6 @@ void setup(void)
 /*
  * Ready to go
  */
-
-  show_echo(0);
   set_LED_PWM(json_LED_PWM);
   
   return;
@@ -210,7 +211,7 @@ void loop()
     enable_interrupt();               // Turn on the face strike interrupt
     face_strike = false;              // Reset the face strike count
     
-    set_LED_PWM(json_LED_PWM);        // Turn the LEDs on
+    set_LED_PWM(json_LED_PWM);        // Keep the LEDs ON
 
     sensor_status = is_running();
     power_save = micros();            // Start the power saver time
@@ -221,7 +222,7 @@ void loop()
       {
         Serial.print("\r\n\nWaiting...");
       }
-      set_LED(L('*', '-', '-'));   
+      set_LED(SHOT_READY);   
       state = WAIT;             // Fall through to WAIT
     }
     else
@@ -229,25 +230,25 @@ void loop()
       if ( sensor_status & TRIP_NORTH  )
       {
         Serial.print("\r\n{ \"Fault\": \"NORTH\" }");
-        set_LED(L('-', '*', '-'));        // Fault code North
+        set_LED(NORTH_FAILED);           // Fault code North
         delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_EAST  )
       {
         Serial.print("\r\n{ \"Fault\": \"EAST\" }");
-        set_LED(L('-', '*', '*'));       // Fault code East
+        set_LED(EAST_FAILED);           // Fault code East
         delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_SOUTH )
       {
         Serial.print("\r\n{ \"Fault\": \"SOUTH\" }");
-        set_LED(L('*', '*', '*'));        // Fault code South
+        set_LED(SOUTH_FAILED);         // Fault code South
         delay(ONE_SECOND);
       }
       if ( sensor_status & TRIP_WEST )
       {
         Serial.print("\r\n{ \"Fault\": \"WEST\" }");
-        set_LED(L('*', '*', '-'));   // Fault code West
+        set_LED(WEST_FAILED);         // Fault code West
         delay(ONE_SECOND);
       }     
     }

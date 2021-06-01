@@ -14,7 +14,7 @@
 #ifdef ESP32
 #define SOFTWARE_VERSION "\"4.00 preliminary\""
 #else
-#define SOFTWARE_VERSION "\"3.01.1 May 9, 2021\""
+#define SOFTWARE_VERSION "\"3.01.6 May 23, 2021\""
 #endif
 #define REV_100    100
 #define REV_210    210
@@ -29,13 +29,29 @@
  * Compilation Flags
  */
 #define SAMPLE_CALCULATIONS false     // Trace the COUNTER values
+#ifdef ESP32
+#define PRINT(x)  {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);BT_Serial.print(x); }
+#else
 #define PRINT(x)  {Serial.print(x); AUX_SERIAL.print(x); DISPLAY_SERIAL.print(x);}
+#endif
+#ifdef ESP32
+#define GET(ch)   {if ( Serial.available() )              ch = Serial.read();         \
+                   else if ( AUX_SERIAL.available() )     ch = AUX_SERIAL.read();     \
+                   else if ( DISPLAY_SERIAL.available() ) ch = DISPLAY_SERIAL.read(); \
+                   else if ( BT_Serial.available() ) ch = BT_Serial.read(); \
+                   else                                   ch = 0;}
+#else
 #define GET(ch)   {if ( Serial.available() )              ch = Serial.read();         \
                    else if ( AUX_SERIAL.available() )     ch = AUX_SERIAL.read();     \
                    else if ( DISPLAY_SERIAL.available() ) ch = DISPLAY_SERIAL.read(); \
                    else                                   ch = 0;}
-                   
+#endif
+
+#ifdef ESP32
+#define AVAILABLE ( Serial.available() + AUX_SERIAL.available() + DISPLAY_SERIAL.available() + BT_Serial.available())
+#else
 #define AVAILABLE ( Serial.available() + AUX_SERIAL.available() + DISPLAY_SERIAL.available() )
+#endif
 
 #define PORT_SERIAL   1
 #define PORT_AUX      2

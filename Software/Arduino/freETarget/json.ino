@@ -36,7 +36,7 @@ int     json_1_ring_x10;            // Size of the 1 ring in mm
 int     json_LED_PWM;               // LED control value 
 int     json_power_save;            // Power down time
 int     json_send_miss;             // Send a miss message
-
+int     json_serial_number;         // Electonic serial number
 int     temp;                       // Temporary variable
 
 #define IS_VOID    0
@@ -70,16 +70,17 @@ const json_message JSON[] = {
   {"\"DIP\":",            &json_dip_switch,                  0,                IS_INT16,  0,                NONVOL_DIP_SWITCH  },    // Remotely set the DIP switch
   {"\"ECHO\":",           &json_echo,                        0,                IS_INT16,  &show_echo,                       0  },    // Echo test
   {"\"INIT\"",            0,                                 0,                IS_VOID,   &init_nonvol,                     0  },    // Initialize the NONVOL memory
-  {"\"LED_BRIGHT\":",     &json_LED_PWM,                     0,                IS_INT16,  &set_LED_PWM,     NONVOL_LED_PWM     },    // Set the LED brightness
+  {"\"LED_BRIGHT\":",     &json_LED_PWM,                     0,                IS_INT16,  &set_LED_PWM_now, NONVOL_LED_PWM     },    // Set the LED brightness
   {"\"NAME_ID\":",        &json_name_id,                     0,                IS_INT16,  &show_names,      NONVOL_NAME_ID     },    // Give the board a name
   {"\"PAPER\":",          &json_paper_time,                  0,                IS_INT16,  0,                NONVOL_PAPER_TIME  },    // Set the paper advance time
   {"\"POWER_SAVE\":",     &json_power_save,                  0,                IS_INT16,  0,                NONVOL_POWER_SAVE  },    // Set the power saver time
   {"\"SEND_MISS\":",      &json_send_miss,                   0,                IS_INT16,  0,                NONVOL_SEND_MISS   },    // Enable / Disable sending miss messages
   {"\"SENSOR\":",         0,                                 &json_sensor_dia, IS_FLOAT,  &gen_position,    NONVOL_SENSOR_DIA  },    // Generate the sensor postion array
+  {"\"SN\":",             &json_serial_number,               0,                IS_INT16,  0,                NONVOL_SERIAL_NO   },    // Board serial number
   {"\"TEST\":",           &json_test,                        0,                IS_INT16,  &show_test,       NONVOL_TEST_MODE   },    // Execute a self test
   {"\"TRACE\":",          &temp,                             0,                IS_INT16,  &set_trace,                       0  },    // Enter / exit diagnostic trace
   {"\"TRGT_1_RINGx10\":", &json_1_ring_x10,                  0,                IS_INT16,  0,                NONVOL_1_RINGx10   },    // Enter the 1 ring diamater
-  {"\"VERSION\":",        0,                                 0,                IS_INT16,  &POST_0,                          0  },    // Return the version string
+  {"\"VERSION\":",        0,                                 0,                IS_INT16,  &POST_version,                    0  },    // Return the version string
   {"\"NORTH_X\":",        &json_north_x,                     0,                IS_INT16,  0,                NONVOL_NORTH_X     },    //
   {"\"NORTH_Y\":",        &json_north_y,                     0,                IS_INT16,  0,                NONVOL_NORTH_Y     },    //
   {"\"EAST_X\":",         &json_east_x,                      0,                IS_INT16,  0,                NONVOL_EAST_X      },    //
@@ -318,13 +319,15 @@ void show_echo(int v)
   Serial.print("\r\n{\r\n");
   Serial.print("\"NAME\":\""), Serial.print(names[json_name_id]); Serial.print("\", \r\n");
   i=0;
-  while (JSON[i].token != 0 )
+  while (JSON[i].token != 0 )                 // Still more to go?  
   {
-    switch ( JSON[i].convert )
+    if ( JSON[i].value != NULL )              // It has a value
     {
-      default:
-      case IS_VOID:
-        break;
+      switch ( JSON[i].convert )              // Display based on it's type
+      {
+        default:
+        case IS_VOID:
+          break;
           
       case IS_INT16:
         Serial.print(JSON[i].token);
@@ -336,16 +339,20 @@ void show_echo(int v)
 	Serial.print(", \r\n");
         break;
 
-      case IS_FLOAT:
-      case IS_DOUBLE:
-        Serial.print(JSON[i].token);
-        Serial.print(*JSON[i].d_value); Serial.print(", \r\n");
-        break;
+        case IS_FLOAT:
+        case IS_DOUBLE:
+          Serial.print(JSON[i].token);
+          Serial.print(*JSON[i].d_value); Serial.print(", \r\n");
+          break;
+      }
     }
     i++;
   }
 
 #ifndef ESP32
+/*
+ * Finish up with the special cases
+ */
   EEPROM.get(NONVOL_INIT, i);
 #else
   i = nvmdata.init;
