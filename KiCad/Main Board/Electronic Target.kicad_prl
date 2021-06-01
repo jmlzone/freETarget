@@ -1,7 +1,7 @@
 {
   "board": {
     "active_layer": 0,
-    "active_layer_preset": "Front Layers",
+    "active_layer_preset": "All Copper Layers",
     "hidden_nets": [
       "Net-(U9-Pad2)",
       "/V_REFERENCE",
@@ -158,7 +158,7 @@
       36,
       37
     ],
-    "visible_layers": "00290aa_00000001"
+    "visible_layers": "0001000_ffffffff"
   },
   "meta": {
     "filename": "Electronic Target.kicad_prl",

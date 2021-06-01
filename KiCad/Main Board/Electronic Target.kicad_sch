@@ -1673,15 +1673,180 @@
           (name "S" (effects (font (size 1.27 1.27))))
           (number "4" (effects (font (size 1.27 1.27))))
         )
-        (pin passive line (at -3.81 6.35 90) (length 2.54) hide
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
           (name "D" (effects (font (size 1.27 1.27))))
           (number "2" (effects (font (size 1.27 1.27))))
         )
-        (pin passive line (at -2.54 6.35 90) (length 2.54) hide
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
           (name "D" (effects (font (size 1.27 1.27))))
           (number "5" (effects (font (size 1.27 1.27))))
         )
-        (pin passive line (at -1.27 6.35 90) (length 2.54) hide
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
+          (name "D" (effects (font (size 1.27 1.27))))
+          (number "6" (effects (font (size 1.27 1.27))))
+        )
+      )
+    )
+    (symbol "DMN1019UVT:DMN1010UVT_1" (pin_numbers hide) (pin_names (offset 0) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "Q" (id 0) (at 5.08 1.27 0)
+        (effects (font (size 1.27 1.27)) (justify left))
+      )
+      (property "Value" "DMN1010UVT" (id 1) (at 5.08 -1.27 0)
+        (effects (font (size 1.27 1.27)) (justify left))
+      )
+      (property "Footprint" "Package_TO_SOT_SMD:TSOT-23-6" (id 2) (at 5.08 2.54 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "Datasheet" "https://www.diodes.com/assets/Datasheets/DMN1019UVT.pdf" (id 3) (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_keywords" "transistor NMOS N-MOS N-MOSFET" (id 4) (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (property "ki_description" "N-MOSFET transistor, drain/gate/source" (id 5) (at 0 0 0)
+        (effects (font (size 1.27 1.27)) hide)
+      )
+      (symbol "DMN1010UVT_1_0_1"
+        (circle (center 1.651 0) (radius 2.8194) (stroke (width 0.254)) (fill (type none)))
+        (circle (center 2.54 -1.778) (radius 0.2794) (stroke (width 0)) (fill (type outline)))
+        (circle (center 2.54 1.778) (radius 0.2794) (stroke (width 0)) (fill (type outline)))
+        (polyline
+          (pts
+            (xy 0.0508 0)
+            (xy 0.254 0)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 -1.778)
+            (xy 2.54 -1.778)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 -1.27)
+            (xy 0.762 -2.286)
+          )
+          (stroke (width 0.254)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 0)
+            (xy 2.54 0)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 0.508)
+            (xy 0.762 -0.508)
+          )
+          (stroke (width 0.254)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 1.778)
+            (xy 2.54 1.778)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.762 2.286)
+            (xy 0.762 1.27)
+          )
+          (stroke (width 0.254)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 2.54 -1.778)
+            (xy 2.54 -2.54)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 2.54 -1.778)
+            (xy 2.54 0)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 2.54 2.54)
+            (xy 2.54 1.778)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 0.254 1.905)
+            (xy 0.254 -1.905)
+            (xy 0.254 -1.905)
+          )
+          (stroke (width 0.254)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 1.016 0)
+            (xy 2.032 0.381)
+            (xy 2.032 -0.381)
+            (xy 1.016 0)
+          )
+          (stroke (width 0)) (fill (type outline))
+        )
+        (polyline
+          (pts
+            (xy 2.54 -1.778)
+            (xy 3.302 -1.778)
+            (xy 3.302 1.778)
+            (xy 2.54 1.778)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 2.794 0.508)
+            (xy 2.921 0.381)
+            (xy 3.683 0.381)
+            (xy 3.81 0.254)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+        (polyline
+          (pts
+            (xy 3.302 0.381)
+            (xy 2.921 -0.254)
+            (xy 3.683 -0.254)
+            (xy 3.302 0.381)
+          )
+          (stroke (width 0)) (fill (type none))
+        )
+      )
+      (symbol "DMN1010UVT_1_1_1"
+        (pin passive line (at 2.54 5.08 270) (length 2.54)
+          (name "D" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin input line (at -5.08 0 0) (length 5.08)
+          (name "G" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 2.54 -5.08 90) (length 2.54)
+          (name "S" (effects (font (size 1.27 1.27))))
+          (number "4" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
+          (name "D" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
+          (name "D" (effects (font (size 1.27 1.27))))
+          (number "5" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 2.54 5.08 270) (length 2.54) hide
           (name "D" (effects (font (size 1.27 1.27))))
           (number "6" (effects (font (size 1.27 1.27))))
         )
@@ -3678,19 +3843,19 @@
   (junction (at 414.02 36.83) (diameter 1.016) (color 0 0 0 0))
   (junction (at 414.02 39.37) (diameter 1.016) (color 0 0 0 0))
 
-  (no_connect (at 378.46 135.89))
-  (no_connect (at 378.46 105.41))
-  (no_connect (at 378.46 102.87))
   (no_connect (at 85.09 187.96))
-  (no_connect (at 358.14 39.37))
-  (no_connect (at 85.09 185.42))
-  (no_connect (at 340.36 135.89))
   (no_connect (at 85.09 190.5))
+  (no_connect (at 85.09 185.42))
   (no_connect (at 340.36 138.43))
-  (no_connect (at 378.46 140.97))
-  (no_connect (at 378.46 138.43))
+  (no_connect (at 378.46 102.87))
+  (no_connect (at 378.46 105.41))
   (no_connect (at 337.82 97.79))
   (no_connect (at 340.36 133.35))
+  (no_connect (at 378.46 135.89))
+  (no_connect (at 378.46 140.97))
+  (no_connect (at 340.36 135.89))
+  (no_connect (at 358.14 39.37))
+  (no_connect (at 378.46 138.43))
 
   (wire (pts (xy 13.97 193.04) (xy 13.97 194.31))
     (stroke (width 0) (type solid) (color 0 0 0 0))
@@ -7364,7 +7529,7 @@
     (property "Reference" "R3" (id 0) (at 116.078 50.9016 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "1K5" (id 1) (at 116.078 53.213 0)
+    (property "Value" "2.2k" (id 1) (at 116.078 53.213 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (id 2) (at 112.522 52.07 90)
@@ -8841,19 +9006,6 @@
     )
   )
 
-  (symbol (lib_id "Connector_Generic:Conn_02x04_Odd_Even") (at 110.49 97.79 0) (unit 1)
-    (in_bom yes) (on_board yes)
-    (uuid "00000000-0000-0000-0000-00005f479c93")
-    (property "Reference" "J2" (id 0) (at 111.76 98.6282 0))
-    (property "Value" "Header 4x2" (id 1) (at 111.76 92.0496 0))
-    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical" (id 2) (at 110.49 97.79 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (id 3) (at 110.49 97.79 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-  )
-
   (symbol (lib_id "DMN1019UVT:DMN1010UVT") (at 24.13 118.11 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid "47fd1e90-f541-47fe-9366-ba70dc291fb2")
@@ -8871,7 +9023,7 @@
     )
   )
 
-  (symbol (lib_id "DMN1019UVT:DMN1010UVT") (at 27.94 128.27 0) (mirror y) (unit 1)
+  (symbol (lib_name "DMN1019UVT:DMN1010UVT_1") (lib_id "DMN1019UVT:DMN1010UVT") (at 27.94 128.27 0) (mirror y) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid "c2119ff4-62bd-45a1-9bc5-74a09a90d436")
     (property "Reference" "Q2" (id 0) (at 31.75 124.46 0)
@@ -8884,6 +9036,19 @@
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "https://www.diodes.com/assets/Datasheets/DMN1019UVT.pdf" (id 3) (at 27.94 128.27 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+  )
+
+  (symbol (lib_id "Connector_Generic:Conn_02x04_Odd_Even") (at 110.49 97.79 0) (unit 1)
+    (in_bom yes) (on_board yes)
+    (uuid "00000000-0000-0000-0000-00005f479c93")
+    (property "Reference" "J2" (id 0) (at 111.76 98.6282 0))
+    (property "Value" "Header 4x2" (id 1) (at 111.76 92.0496 0))
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical" (id 2) (at 110.49 97.79 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "~" (id 3) (at 110.49 97.79 0)
       (effects (font (size 1.27 1.27)) hide)
     )
   )
@@ -9783,7 +9948,7 @@
       (reference "R2") (unit 1) (value "DNI") (footprint "Resistor_SMD:R_0603_1608Metric")
     )
     (path "/00000000-0000-0000-0000-00005ef511bf"
-      (reference "R3") (unit 1) (value "1K5") (footprint "Resistor_SMD:R_0603_1608Metric")
+      (reference "R3") (unit 1) (value "2.2k") (footprint "Resistor_SMD:R_0603_1608Metric")
     )
     (path "/964d8d33-3dff-4ef5-ab71-0a2a99efef40"
       (reference "R5") (unit 1) (value "3.3K") (footprint "Resistor_SMD:R_0603_1608Metric")
